@@ -36,7 +36,7 @@ namespace Pege.Streaming
                 var streamType = Type.GetType($"Pege.Streaming.{streamInfo.ImplType}")
                     ?? throw new InvalidOperationException(string.Format(Error.UnknownStreamType, streamInfo.ImplType, streamInfo.Id));
 
-                if (Activator.CreateInstance(streamType, streamInfo, serviceProvider) is not IStream instance)
+                if (Activator.CreateInstance(streamType, streamInfo.ToStatus(), serviceProvider) is not IStream instance)
                     throw new InvalidOperationException(string.Format(Error.InadequateStreamType, streamInfo.ImplType, streamInfo.Id));
 
                 instance.Start();
@@ -106,8 +106,7 @@ namespace Pege.Streaming
                 var info = await db.Streams.FirstOrDefaultAsync(s => s.Id == id.ToLower().Trim());
                 if (info == null) return null;
 
-                status = new StreamStatus();
-                status.FromInfo(info);
+                status = info.ToStatus();
             }
             catch
             {
@@ -138,9 +137,7 @@ namespace Pege.Streaming
                 }
                 catch
                 {
-                    var status = new StreamStatus();
-                    status.FromInfo(si);
-                    return status;
+                    return si.ToStatus();
                 }
             });
         }
@@ -168,6 +165,17 @@ namespace Pege.Streaming
                 Position = 0
             };
             return stream;
+        }
+
+        public async Task<StreamStatus> RegisterAsync(StreamInfo info)
+        {
+            info.Registered = DateTime.UtcNow;
+
+            using var db = dataContextFactory.CreateDbContext();
+            var entity = await db.Streams.AddAsync(info);
+            await db.SaveChangesAsync();
+
+            return entity.Entity.ToStatus();
         }
 
         private async Task<StreamInfo?> GetStreamInfoAsync(string id)

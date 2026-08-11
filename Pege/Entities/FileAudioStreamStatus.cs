@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using Pege.Data;
+using System.Text.Json.Serialization;
 
 namespace Pege.Entities
 {
@@ -32,5 +33,17 @@ namespace Pege.Entities
         /// Общая продолжительность.
         /// </summary>
         public TimeSpan TotalDuration { get; set; }
+
+        public override void FromDescription(StreamDescriptor streamDescriptor)
+        {
+            base.FromDescription(streamDescriptor);
+
+            Path = streamDescriptor.Source;
+        }
+
+        protected override StreamInfo CreateInfo() => new FileAudioStreamInfo
+        {
+            Path = Path
+        };
     }
 }

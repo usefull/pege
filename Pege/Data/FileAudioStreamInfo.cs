@@ -1,6 +1,6 @@
-﻿using Pege.Resource;
+﻿using Pege.Entities;
+using Pege.Resource;
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Pege.Data
 {
@@ -16,6 +16,16 @@ namespace Pege.Data
             ErrorMessageResourceType = typeof(Error),
             ErrorMessageResourceName = nameof(Error.PathIsRequired)
         )]
-        public string? Path { get; set; }
+        public required string Path { get; set; }
+
+        /// <summary>
+        /// Метод создания экземпрляра типа <see cref="FileAudioStreamStatus"/>
+        /// на основании полей этого типа.
+        /// </summary>
+        /// <returns>Экземпляр типа <see cref="FileAudioStreamStatus"/></returns>
+        protected override StreamStatus CreateStatus() => new FileAudioStreamStatus()
+        {
+            Path = Path
+        };
     }
 }

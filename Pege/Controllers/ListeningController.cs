@@ -21,9 +21,9 @@ namespace Pege.Controllers
             Type? chunkType = null;
             while (streamType != null && streamType != typeof(object))
             {
-                if (streamType.IsGenericType && streamType.GetGenericTypeDefinition().Name.StartsWith("Stream`3"))
+                if (streamType.IsGenericType && streamType.GetGenericTypeDefinition().Name.StartsWith("Stream`2"))
                 {
-                    chunkType = streamType.GetGenericArguments()[2];
+                    chunkType = streamType.GetGenericArguments()[1];
                     break;
                 }
                 streamType = streamType.BaseType;

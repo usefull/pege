@@ -1,20 +1,15 @@
-﻿using Pege.Data;
+﻿using Pege.Entities;
 using Pege.Resource;
 using System.Net.Sockets;
 using System.Text;
 
 namespace Pege.Streaming
 {
-    internal class RelayShoutcastV1AudioStream : BaseRelayAudioStream
+    internal class RelayShoutcastV1AudioStream(RelayAudioStreamStatus status, IServiceProvider serviceProvider) : BaseRelayAudioStream(status, serviceProvider)
     {
-        public RelayShoutcastV1AudioStream(RelayAudioStreamInfo info, IServiceProvider serviceProvider) : base(info, serviceProvider)
-        {
-            CastedStatus?.ContentType = "audio/mpeg";
-        }
-
         protected override async Task BroadcastCycleAsync(CancellationToken cancellationToken)
         {
-            _log.Information(string.Format(Message.RetransmittingStarted, CastedStatus?.Uri) + " [SHOUTcast v1/ICY Mode]");
+            _log.Information(string.Format(Message.RetransmittingStarted, CastedStatus.Uri) + " [SHOUTcast v1/ICY Mode]");
 
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -39,7 +34,7 @@ namespace Pege.Streaming
 
         private async Task ProcessIcyStreamRelayAsync(CancellationToken cancellationToken)
         {
-            var uri = new Uri(CastedStatus?.Uri);
+            var uri = new Uri(CastedStatus.Uri!);
 
             // Устанавливаем прямое TCP-соединение
             using var tcpClient = new TcpClient();
@@ -96,7 +91,7 @@ namespace Pege.Streaming
                 }
                 else if (line.StartsWith("Content-Type:", StringComparison.OrdinalIgnoreCase))
                 {
-                    CastedStatus?.ContentType = line[13..].Trim();
+                    CastedStatus.ContentType = line[13..].Trim();
                 }
                 else if (line.StartsWith("icy-metaint:", StringComparison.OrdinalIgnoreCase))
                 {

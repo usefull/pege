@@ -1,4 +1,6 @@
-﻿namespace Pege.Data
+﻿using Pege.Entities;
+
+namespace Pege.Data
 {
     /// <summary>
     /// Информация о ретрансляторе аудио-стрима.
@@ -10,5 +12,16 @@
         /// информацию о треке и артисте при ретрансляции нужно менять местами.
         /// </summary>
         public bool? MetadataSwap { get; set; }
+
+        /// <summary>
+        /// Метод создания экземпрляра типа <see cref="RelayAudioStreamStatus"/>
+        /// на основании полей этого типа.
+        /// </summary>
+        /// <returns>Экземпляр типа <see cref="RelayAudioStreamStatus"/></returns>
+        protected override StreamStatus CreateStatus() => new RelayAudioStreamStatus()
+        {
+            Uri = Uri,
+            MetadataSwap = MetadataSwap
+        };
     }
 }

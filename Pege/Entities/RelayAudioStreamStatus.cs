@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using Pege.Data;
+using System.Text.Json.Serialization;
 
 namespace Pege.Entities
 {
@@ -19,5 +20,19 @@ namespace Pege.Entities
         /// </summary>
         [JsonIgnore]
         public bool? MetadataSwap { get; set; }
+
+        public override void FromDescription(StreamDescriptor streamDescriptor)
+        {
+            base.FromDescription(streamDescriptor);
+
+            Uri = streamDescriptor.Source;
+            MetadataSwap = streamDescriptor.MetadataSwap;
+        }
+
+        protected override StreamInfo CreateInfo() => new RelayAudioStreamInfo
+        {
+            Uri = Uri,
+            MetadataSwap = MetadataSwap
+        };
     }
 }

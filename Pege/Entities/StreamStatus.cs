@@ -6,7 +6,7 @@ namespace Pege.Entities
     /// <summary>
     /// Базовый класс состояния стрима.
     /// </summary>
-    public class StreamStatus
+    public abstract class StreamStatus
     {
         /// <summary>
         /// Идентификатор стрима.
@@ -55,19 +55,28 @@ namespace Pege.Entities
         [JsonIgnore]
         public string? TelegramChannelId { get; set; }
 
-        /// <summary>
-        /// Метод копирования данных из сущности <see cref="StreamInfo"/>.
-        /// </summary>
-        /// <param name="info">Сущность-источник.</param>
-        public virtual void FromInfo(StreamInfo info)
+        public virtual void FromDescription(StreamDescriptor streamDescriptor)
         {
-            Id = info.Id;
-            Title = info.Title;
-            Country = info.Country;
-            Stopped = info.Stopped;
-            Registered = info.Registered;
-            ImplType = info.ImplType;
-            TelegramChannelId = info.TelegramChannelId;
+            Id = streamDescriptor.Id;
+            Title = streamDescriptor.Title;
+            Country = streamDescriptor.Country;
+            ImplType = streamDescriptor.ImplType;
+            TelegramChannelId = streamDescriptor.TelegramChannelId;
         }
+
+        public StreamInfo ToInfo()
+        {
+            var info = CreateInfo();
+
+            info.Id = Id;
+            info.Title = Title;
+            info.Country = Country;
+            info.ImplType = ImplType;
+            info.TelegramChannelId = TelegramChannelId;
+
+            return info;
+        }
+
+        protected abstract StreamInfo CreateInfo();
     }
 }

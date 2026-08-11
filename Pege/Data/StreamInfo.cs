@@ -1,21 +1,20 @@
-﻿using Pege.Resource;
+﻿using Pege.Entities;
+using Pege.Resource;
 using System.ComponentModel.DataAnnotations;
 
 namespace Pege.Data
 {
     /// <summary>
-    /// Базовый класс информации о стриме.
+    /// Базовый класс информации о стриме
+    /// представляющий запись в таблице БД.
     /// </summary>
-    public abstract class StreamInfo : IValidatableObject
+    public abstract class StreamInfo
     {
         /// <summary>
         /// Идентификатор стрима.
         /// </summary>
         [Key]
         [StringLength(50)]
-        [RegularExpression(@"^[a-zA-Z0-9\-\._~!\$&'\(\)\*\+,;=:@]+$",
-            ErrorMessageResourceType = typeof(Error),
-            ErrorMessageResourceName = nameof(Error.InvalidStreamId))]
         public string? Id { get; set; }
 
         /// <summary>
@@ -64,6 +63,29 @@ namespace Pege.Data
         [StringLength(50)]
         public string? TelegramChannelId { get; set; }
 
-        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext) => [];
+        /// <summary>
+        /// Метод приведения к типу <see cref="StreamStatus"./>
+        /// </summary>
+        /// <returns>Приведенный объект.</returns>
+        public StreamStatus ToStatus()
+        {
+            var status = CreateStatus();
+
+            status.Id = Id;
+            status.Title = Title;
+            status.Country = Country;
+            status.ImplType = ImplType;
+            status.Registered = Registered;
+            status.Stopped = Stopped;
+            status.TelegramChannelId = TelegramChannelId;
+
+            return status;
+        }
+
+        /// <summary>
+        /// Метод создания сущности конкретного типа, производного от <see cref="StreamStatus"/>.
+        /// </summary>
+        /// <returns></returns>
+        protected abstract StreamStatus CreateStatus();
     }
 }

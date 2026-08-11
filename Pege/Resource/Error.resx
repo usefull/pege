@@ -136,6 +136,9 @@
   <data name="StreamTitleIsRequired" xml:space="preserve">
     <value>A stream title is required.</value>
   </data>
+  <data name="StreamIdIsRequired" xml:space="preserve">
+    <value>A stream ID is required.</value>
+  </data>
   <data name="UnknownStreamType" xml:space="preserve">
     <value>Unknown stream type "{0}" for id "{1}".</value>
   </data>
@@ -232,5 +235,20 @@ Input file: {0}</value>
   </data>
   <data name="BotCommandHandlingError" xml:space="preserve">
     <value>The error occured while handling the bot command {0}. Reason: {1}</value>
+  </data>
+  <data name="StreamIdLengthExceeded" xml:space="preserve">
+    <value>The maximum length of a stream ID is 50 characters.</value>
+  </data>
+  <data name="StreamTitleLengthExceeded" xml:space="preserve">
+    <value>The maximum length of a stream title is 255 characters.</value>
+  </data>
+  <data name="StreamCountryLengthExceeded" xml:space="preserve">
+    <value>The maximum length of a stream country is 100 characters.</value>
+  </data>
+  <data name="StreamTgChannelLengthExceeded" xml:space="preserve">
+    <value>The maximum length of a stream Tg-channel ID is 50 characters.</value>
+  </data>
+  <data name="StreamTypeLengthExceeded" xml:space="preserve">
+    <value>The maximum length of a stream type is 150 characters.</value>
   </data>
 </root>

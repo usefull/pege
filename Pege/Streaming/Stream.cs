@@ -7,23 +7,10 @@ using System.Threading.Channels;
 
 namespace Pege.Streaming
 {
-    internal abstract class Stream<TInfo, TStatus, TChunk> : IStream
-        where TInfo : StreamInfo, new()
+    internal abstract class Stream<TStatus, TChunk>(TStatus status, IServiceProvider serviceProvider) : IStream
         where TStatus : StreamStatus, new()
         where TChunk : Chunk, new()
     {
-        protected Stream(TInfo info, IServiceProvider serviceProvider)
-        {
-            _serviceProvider = serviceProvider;
-
-            _log = Log.Logger.ForContext("Stream", $"[Stream:{info.Id}]");
-
-            Status = new TStatus();
-            Status.FromInfo(info);
-
-            _cts = new CancellationTokenSource();
-        }
-
         public void Start()
         {
             _task = Task.Run(async () => {
@@ -36,9 +23,9 @@ namespace Pege.Streaming
             Status.Stopped = null;
         }
 
-        public StreamStatus Status { get; protected set; }
+        public StreamStatus Status { get; protected set; } = status;
 
-        public TStatus? CastedStatus => Status as TStatus;
+        public TStatus CastedStatus => Status as TStatus ?? throw new InvalidCastException();
 
         public void Dispose()
         {
@@ -122,12 +109,12 @@ namespace Pege.Streaming
             SingleWriter = true
         });
 
-        protected readonly Serilog.ILogger _log;
+        protected readonly Serilog.ILogger _log = Log.Logger.ForContext("Stream", $"[Stream:{status.Id}]");
 
-        protected IServiceProvider _serviceProvider;
+        protected IServiceProvider _serviceProvider = serviceProvider;
 
         private Task? _task;
-        private readonly CancellationTokenSource _cts;
+        private readonly CancellationTokenSource _cts = new();
         private readonly List<ConsumerSession> _consumers = [];
         private readonly Lock _lock = new();
     }

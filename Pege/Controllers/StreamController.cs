@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Pege.Entities;
 using Pege.Streaming;
+using System.ComponentModel.DataAnnotations;
 
 namespace Pege.Controllers
 {
@@ -56,10 +57,25 @@ namespace Pege.Controllers
         }
 
         [HttpPut]
-        public async Task<IActionResult> PutStreamAsync([FromBody] StreamStatus streamStatus)
+        public async Task<IActionResult> PutStreamAsync([FromBody] StreamDescriptor streamStatus)
         {
-            ;
-            return Ok();
+            //var results = new List<ValidationResult>();
+            //var context = new ValidationContext(streamStatus);
+
+            //bool isValid = Validator.TryValidateObject(streamStatus, context, results, true);
+            //if (!isValid)
+            //    return BadRequest(results);
+
+            try
+            {
+                var info = streamStatus.ToInfo();
+                var streamInfo = await factory.RegisterAsync(info);
+                return Ok(streamInfo);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
         }
     }
 }

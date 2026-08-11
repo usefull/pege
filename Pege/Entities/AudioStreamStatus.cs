@@ -3,7 +3,7 @@
     /// <summary>
     /// Состояние аудио-стрима.
     /// </summary>
-    public class AudioStreamStatus : StreamStatus
+    public abstract class AudioStreamStatus : StreamStatus
     {
         /// <summary>
         /// Название текущего трека

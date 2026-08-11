@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Net.Http.Headers;
-using Pege.Data;
 using Pege.Entities;
 using Pege.Extensions;
 using Pege.Interfaces;
@@ -13,15 +12,15 @@ using System.Text;
 
 namespace Pege.Streaming
 {
-    internal class RandomMp3AudioStream : Stream<FileAudioStreamInfo, FileAudioStreamStatus, AudioChunk>, IFileUploader
+    internal class RandomMp3AudioStream : Stream<FileAudioStreamStatus, AudioChunk>, IFileUploader
     {
-        public RandomMp3AudioStream(FileAudioStreamInfo info, IServiceProvider serviceProvider) : base(info, serviceProvider)
+        public RandomMp3AudioStream(FileAudioStreamStatus status, IServiceProvider serviceProvider) : base(status, serviceProvider)
         {
-            CastedStatus?.Path = info.Path;
-            CastedStatus?.ContentType = "audio/mpeg";
+            CastedStatus.Path = status.Path;
+            Status.ContentType = "audio/mpeg";
 
-            if (!Path.Exists(CastedStatus?.Path))
-                throw new ApplicationException(string.Format(Error.DirectoryDoesNotExist, CastedStatus?.Path));
+            if (!Path.Exists(CastedStatus.Path))
+                throw new ApplicationException(string.Format(Error.DirectoryDoesNotExist, CastedStatus.Path));
 
             _ffmpegService = serviceProvider.GetRequiredService<FFmpegService>();
             _ffmpegService.Log = _log;
@@ -38,7 +37,7 @@ namespace Pege.Streaming
                 // Загружаем первый трек
                 string currentTrackPath = GetNextFilename();
                 byte[] currentTrackData = await _ffmpegService.EncodeTrackAsync(currentTrackPath, _targetBitrate, _targetSamplerate, cancellationToken);
-                (CastedStatus!.Artist, CastedStatus.Track) = _ffmpegService.GetMp3Metadata(currentTrackPath);
+                (CastedStatus.Artist, CastedStatus.Track) = _ffmpegService.GetMp3Metadata(currentTrackPath);
 
                 while (true)
                 {
@@ -46,7 +45,7 @@ namespace Pege.Streaming
 
                     // Асинхронно начинаем загружать следующий трек (параллельно с воспроизведением текущего)
                     string nextTrackPath = GetNextFilename();
-                    (CastedStatus!.NextArtist, CastedStatus!.NextTrack) = _ffmpegService.GetMp3Metadata(nextTrackPath);
+                    (CastedStatus.NextArtist, CastedStatus.NextTrack) = _ffmpegService.GetMp3Metadata(nextTrackPath);
                     var loadNextTask = Task.Run(
                         async () => await _ffmpegService.EncodeTrackAsync(nextTrackPath, _targetBitrate, _targetSamplerate, cancellationToken),
                         cancellationToken
@@ -61,18 +60,18 @@ namespace Pege.Streaming
                     // Ждем загрузки следующего трека
                     currentTrackData = await loadNextTask;
 
-                    CastedStatus!.Artist = CastedStatus!.NextArtist;
-                    CastedStatus.Track = CastedStatus!.NextTrack;
+                    CastedStatus.Artist = CastedStatus.NextArtist;
+                    CastedStatus.Track = CastedStatus.NextTrack;
 
-                    CastedStatus!.NextArtist = null;
-                    CastedStatus!.NextTrack = null;
+                    CastedStatus.NextArtist = null;
+                    CastedStatus.NextTrack = null;
                 }
             }
             catch { throw; }
             finally
             {
-                CastedStatus?.NextTrack = null;
-                CastedStatus?.NextArtist = null;
+                CastedStatus.NextTrack = null;
+                CastedStatus.NextArtist = null;
 
                 if (cancellationToken.IsCancellationRequested)
                     _log.Information(Message.BroadcastingStopped);
@@ -84,8 +83,8 @@ namespace Pege.Streaming
         /// </summary>
         private async Task BroadcastTrackAsync(byte[] encodedData, CancellationToken cancellationToken)
         {
-            _log.Information($"Now playing: \"{CastedStatus?.Track}\" by {CastedStatus?.Artist}");
-            _log.Information($"Next: \"{CastedStatus!.NextTrack}\" by {CastedStatus!.NextArtist}");
+            _log.Information($"Now playing: \"{CastedStatus.Track}\" by {CastedStatus.Artist}");
+            _log.Information($"Next: \"{CastedStatus.NextTrack}\" by {CastedStatus.NextArtist}");
 
             int offset = 0;
             long totalBytes = encodedData.Length;
@@ -134,12 +133,12 @@ namespace Pege.Streaming
             if (tgService == null) return;
 
             var message = await tgService.SendMessageAsync(@$"<u>Now playing</u>:
-<b>""{CastedStatus?.Track}""</b>
-by <b>{CastedStatus?.Artist}</b>
+<b>""{CastedStatus.Track}""</b>
+by <b>{CastedStatus.Artist}</b>
 
 <u>Next track</u>:
-<b>""{CastedStatus?.NextTrack}""</b>
-by <b>{CastedStatus?.NextArtist}</b>", Status.TelegramChannelId!);
+<b>""{CastedStatus.NextTrack}""</b>
+by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
 
             _ = ClearPreviousTgMessages(message);
         }
@@ -172,14 +171,14 @@ by <b>{CastedStatus?.NextArtist}</b>", Status.TelegramChannelId!);
             }
         }
 
-        private string GenerateMetadataString() => $"StreamTitle='{CastedStatus?.Artist} - {CastedStatus?.Track}';NextTrack='{CastedStatus?.NextArtist} - {CastedStatus?.NextTrack}';";
+        private string GenerateMetadataString() => $"StreamTitle='{CastedStatus.Artist} - {CastedStatus.Track}';NextTrack='{CastedStatus.NextArtist} - {CastedStatus.NextTrack}';";
 
         /// <summary>
         /// Метод выбирает следующий случайный MP3-файл.
         /// </summary>
         private string GetNextFilename()
         {
-            var allFiles = Directory.GetFiles(CastedStatus!.Path!, "*.mp3");
+            var allFiles = Directory.GetFiles(CastedStatus.Path!, "*.mp3");
             if (allFiles.Length == 0)
                 throw new InvalidOperationException(Error.NoFilesToPlay);
 
@@ -208,7 +207,7 @@ by <b>{CastedStatus?.NextArtist}</b>", Status.TelegramChannelId!);
         /// </summary>
         private async Task UpdateTotalTracksAndDurationAsync()
         {
-            var files = Directory.GetFiles(CastedStatus?.Path!, "*.mp3", SearchOption.AllDirectories);
+            var files = Directory.GetFiles(CastedStatus.Path!, "*.mp3", SearchOption.AllDirectories);
 
             var totalSeconds = new ConcurrentBag<double>();
             var errors = new ConcurrentBag<string>();
@@ -230,16 +229,16 @@ by <b>{CastedStatus?.NextArtist}</b>", Status.TelegramChannelId!);
                     }
                 });
 
-            CastedStatus?.TotalDuration = TimeSpan.FromSeconds(totalSeconds.Sum());
-            CastedStatus?.TotalTracks = processed;
+            CastedStatus.TotalDuration = TimeSpan.FromSeconds(totalSeconds.Sum());
+            CastedStatus.TotalTracks = processed;
         }
 
         public void DeleteTrack(string fileName)
         {
-            if (!Path.Exists(CastedStatus?.Path))
+            if (!Path.Exists(CastedStatus.Path))
                 throw new ApplicationException(Error.DirectoryDoesNotExist);
 
-            var path = Path.Combine(CastedStatus?.Path!, fileName);
+            var path = Path.Combine(CastedStatus.Path!, fileName);
             if (File.Exists(path))
             {
                 File.Delete(path);
@@ -282,10 +281,10 @@ by <b>{CastedStatus?.NextArtist}</b>", Status.TelegramChannelId!);
                             throw new ApplicationException(Error.OnlyMp3FileExtensionAvailable);
 
 
-                        if (!Path.Exists(CastedStatus?.Path))
+                        if (!Path.Exists(CastedStatus.Path))
                             throw new ApplicationException(Error.DirectoryDoesNotExist);
 
-                        var filename = Path.Combine(CastedStatus?.Path!, currentFileName);
+                        var filename = Path.Combine(CastedStatus.Path, currentFileName);
                         if (File.Exists(filename))
                             throw new ApplicationException(string.Format(Error.FileAlreadyExists, currentFileName));
 
@@ -318,7 +317,7 @@ by <b>{CastedStatus?.NextArtist}</b>", Status.TelegramChannelId!);
                     {
                         try
                         {
-                            return ffmpegService.GetMp3Metadata(Path.Combine(CastedStatus?.Path!, i.Key));
+                            return ffmpegService.GetMp3Metadata(Path.Combine(CastedStatus.Path!, i.Key));
                         }
                         catch
                         {
@@ -349,7 +348,7 @@ by <b>{CastedStatus?.NextArtist}</b>", Status.TelegramChannelId!);
             });
 
             message.AppendLine(string.Empty);
-            message.AppendLine($"Now we have {CastedStatus?.TotalTracks.ToString() ?? "some"} tracks for a non-stop <a href=\"{config?["BaseUri"]}/stream/_\">stream</a> without repeats, lasting {CastedStatus?.TotalDuration.FormatTimeSpan() ?? "some time"}.");
+            message.AppendLine($"Now we have {CastedStatus.TotalTracks.ToString() ?? "some"} tracks for a non-stop <a href=\"{config?["BaseUri"]}/stream/_\">stream</a> without repeats, lasting {CastedStatus.TotalDuration.FormatTimeSpan() ?? "some time"}.");
 
             Log.Information(message.ToString());
 

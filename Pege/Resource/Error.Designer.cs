@@ -288,6 +288,15 @@ namespace Pege.Resource {
         }
         
         /// <summary>
+        ///   Ищет локализованную строку, похожую на The maximum length of a stream country is 100 characters..
+        /// </summary>
+        internal static string StreamCountryLengthExceeded {
+            get {
+                return ResourceManager.GetString("StreamCountryLengthExceeded", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Ищет локализованную строку, похожую на The stream does not support uploading..
         /// </summary>
         internal static string StreamDoesntSupportUploading {
@@ -297,11 +306,56 @@ namespace Pege.Resource {
         }
         
         /// <summary>
+        ///   Ищет локализованную строку, похожую на A stream ID is required..
+        /// </summary>
+        internal static string StreamIdIsRequired {
+            get {
+                return ResourceManager.GetString("StreamIdIsRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Ищет локализованную строку, похожую на The maximum length of a stream ID is 50 characters..
+        /// </summary>
+        internal static string StreamIdLengthExceeded {
+            get {
+                return ResourceManager.GetString("StreamIdLengthExceeded", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Ищет локализованную строку, похожую на The maximum length of a stream Tg-channel ID is 50 characters..
+        /// </summary>
+        internal static string StreamTgChannelLengthExceeded {
+            get {
+                return ResourceManager.GetString("StreamTgChannelLengthExceeded", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Ищет локализованную строку, похожую на A stream title is required..
         /// </summary>
         internal static string StreamTitleIsRequired {
             get {
                 return ResourceManager.GetString("StreamTitleIsRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Ищет локализованную строку, похожую на The maximum length of a stream title is 255 characters..
+        /// </summary>
+        internal static string StreamTitleLengthExceeded {
+            get {
+                return ResourceManager.GetString("StreamTitleLengthExceeded", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Ищет локализованную строку, похожую на The maximum length of a stream type is 150 characters..
+        /// </summary>
+        internal static string StreamTypeLengthExceeded {
+            get {
+                return ResourceManager.GetString("StreamTypeLengthExceeded", resourceCulture);
             }
         }
         

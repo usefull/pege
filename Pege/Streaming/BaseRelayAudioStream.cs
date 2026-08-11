@@ -1,17 +1,17 @@
-﻿using Pege.Data;
-using Pege.Entities;
+﻿using Pege.Entities;
 using Pege.Extensions;
 using System.Buffers;
 using System.Text;
 
 namespace Pege.Streaming
 {
-    internal abstract class BaseRelayAudioStream : Stream<RelayAudioStreamInfo, RelayAudioStreamStatus, AudioChunk>
+    internal abstract class BaseRelayAudioStream : Stream<RelayAudioStreamStatus, AudioChunk>
     {
-        public BaseRelayAudioStream(RelayAudioStreamInfo info, IServiceProvider serviceProvider) : base(info, serviceProvider)
+        public BaseRelayAudioStream(RelayAudioStreamStatus status, IServiceProvider serviceProvider) : base(status, serviceProvider)
         {
-            CastedStatus?.Uri = info.Uri;
-            CastedStatus?.MetadataSwap = info.MetadataSwap;
+            CastedStatus.Uri = status.Uri;
+            CastedStatus.MetadataSwap = status.MetadataSwap;
+            Status.ContentType = "audio/mpeg";
         }
 
         protected virtual async Task RelayCycleAsync(Stream networkStream, int bufferSize, TimeSpan streamReadTimeout, int bitrate, int metaInterval, CancellationToken cancellationToken)
@@ -59,8 +59,8 @@ namespace Pege.Streaming
                                         var streamTitle = strMetadata.Split(';').FirstOrDefault(s => s.StartsWith("StreamTitle='"));
                                         if (streamTitle == null)
                                         {
-                                            CastedStatus?.Track = string.Empty;
-                                            CastedStatus?.Artist = string.Empty;
+                                            CastedStatus.Track = string.Empty;
+                                            CastedStatus.Artist = string.Empty;
                                         }
                                         else
                                         {
@@ -68,29 +68,29 @@ namespace Pege.Streaming
                                             var end = streamTitle.LastIndexOf('\'');
                                             if (start < 1 || end < 0)
                                             {
-                                                CastedStatus?.Track = string.Empty;
-                                                CastedStatus?.Artist = string.Empty;
+                                                CastedStatus.Track = string.Empty;
+                                                CastedStatus.Artist = string.Empty;
                                             }
                                             else
                                             {
                                                 var parts = streamTitle[start..end]
                                                     ?.Split(" - ").Select(s => s.Trim()).ToList();
 
-                                                if (CastedStatus?.MetadataSwap ?? false)
+                                                if (CastedStatus.MetadataSwap ?? false)
                                                 {
                                                     if (parts?.Count > 0)
-                                                        CastedStatus?.Track = parts[0];
+                                                        CastedStatus.Track = parts[0];
 
                                                     if (parts?.Count > 1)
-                                                        CastedStatus?.Artist = parts[1];
+                                                        CastedStatus.Artist = parts[1];
                                                 }
                                                 else
                                                 {
                                                     if (parts?.Count > 0)
-                                                        CastedStatus?.Artist = parts[0];
+                                                        CastedStatus.Artist = parts[0];
 
                                                     if (parts?.Count > 1)
-                                                        CastedStatus?.Track = parts[1];
+                                                        CastedStatus.Track = parts[1];
                                                 }
                                             }
                                         }
@@ -185,6 +185,6 @@ namespace Pege.Streaming
             }
         }
 
-        private string GenerateMetadataString() => $"StreamTitle='{CastedStatus?.Artist} - {CastedStatus?.Track}';";
+        private string GenerateMetadataString() => $"StreamTitle='{CastedStatus.Artist} - {CastedStatus.Track}';";
     }
 }
