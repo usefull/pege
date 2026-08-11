@@ -1,0 +1,6 @@
+@Pege_HostAddress = http://localhost:5266
+
+GET {{Pege_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

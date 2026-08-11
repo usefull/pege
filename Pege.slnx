@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Pege.Analyzers/Pege.Analyzers.csproj" Id="98822e06-a696-4db5-9ae6-aa6360224646" />
+  <Project Path="Pege/Pege.csproj" />
+</Solution>

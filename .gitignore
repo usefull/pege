@@ -23,6 +23,10 @@ bld/
 [Ll]og/
 [Ll]ogs/
 
+# Visual Studio
+.vs
+*.user
+
 # .NET Core
 project.lock.json
 project.fragment.lock.json
@@ -55,3 +59,8 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# Custom
+deploy.conf
+mp3
+storage
