@@ -72,7 +72,7 @@ namespace Pege.Streaming
                                     ArrayPool<byte>.Shared.Return(metadata!);
                                     metadata = null;
 
-                                    _ = UpdateStatusWithMetadataAsync(strMetadata, cancellationToken);
+                                    UpdateStatusWithMetadata(strMetadata);
                                 }
                                 else
                                 {
@@ -168,13 +168,16 @@ namespace Pege.Streaming
         /// </summary>
         /// <param name="strMetadata">Строка метаданных.</param>
         /// <param name="cancellationToken">Токен отмены операции.</param>
-        private Task UpdateStatusWithMetadataAsync(string strMetadata, CancellationToken cancellationToken) => Task.Run(() =>
+        private void UpdateStatusWithMetadata(string strMetadata)
         {
             var streamTitle = strMetadata.Split(';').FirstOrDefault(s => s.StartsWith("StreamTitle='"));
             if (streamTitle == null)
             {
-                CastedStatus.Track = string.Empty;
-                CastedStatus.Artist = string.Empty;
+                lock (CastedStatus)
+                {
+                    CastedStatus.Track = string.Empty;
+                    CastedStatus.Artist = string.Empty;
+                }
             }
             else
             {
@@ -182,38 +185,51 @@ namespace Pege.Streaming
                 var end = streamTitle.LastIndexOf('\'');
                 if (start < 1 || end < 0)
                 {
-                    CastedStatus.Track = string.Empty;
-                    CastedStatus.Artist = string.Empty;
+                    lock (CastedStatus)
+                    {
+                        CastedStatus.Track = string.Empty;
+                        CastedStatus.Artist = string.Empty;
+                    }
                 }
                 else
                 {
                     var parts = streamTitle[start..end]
                         ?.Split(" - ").Select(s => s.Trim()).ToList();
 
-                    if (CastedStatus.MetadataSwap ?? false)
+                    lock (CastedStatus)
                     {
-                        if (parts?.Count > 0)
-                            CastedStatus.Track = parts[0];
+                        if (CastedStatus.MetadataSwap ?? false)
+                        {
+                            if (parts?.Count > 0)
+                                CastedStatus.Track = parts[0];
 
-                        if (parts?.Count > 1)
-                            CastedStatus.Artist = parts[1];
-                    }
-                    else
-                    {
-                        if (parts?.Count > 0)
-                            CastedStatus.Artist = parts[0];
+                            if (parts?.Count > 1)
+                                CastedStatus.Artist = parts[1];
+                        }
+                        else
+                        {
+                            if (parts?.Count > 0)
+                                CastedStatus.Artist = parts[0];
 
-                        if (parts?.Count > 1)
-                            CastedStatus.Track = parts[1];
+                            if (parts?.Count > 1)
+                                CastedStatus.Track = parts[1];
+                        }
                     }
                 }
             }
-        }, cancellationToken);
+        }
 
         /// <summary>
         /// Метод формирования строки метаданных.
         /// </summary>
         /// <returns>Строка с метаданными.</returns>
-        private string GenerateMetadataString() => $"StreamTitle='{CastedStatus.Artist} - {CastedStatus.Track}';";
+        private string GenerateMetadataString()
+        {
+            lock (CastedStatus)
+            {
+                return $"StreamTitle='{CastedStatus.Artist} - {CastedStatus.Track}';";
+            }
+        }
+            
     }
 }
