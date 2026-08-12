@@ -34,6 +34,8 @@ try
     builder.Services.AddDbContextFactory<DataContext>(options =>
     options.UseSqlite(builder.Configuration["DataConnectionString"]));
 
+    builder.Services.AddSingleton<FileLockManager>();
+
     builder.Services.AddSingleton<StreamFactory>();
 
     builder.Services.AddTransient<FFmpegService>();

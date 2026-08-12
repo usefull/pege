@@ -7,17 +7,11 @@ namespace Pege.Services
     /// <summary>
     /// Сервис FFmpeg для работы с медиафайлами.
     /// </summary>
-    internal class FFmpegService
+    /// <remarks>
+    /// Конструктор.
+    /// </remarks>
+    internal class FFmpegService(FileLockManager lockManager)
     {
-        /// <summary>
-        /// Конструктор.
-        /// </summary>
-        public FFmpegService()
-        {
-            _ffmpegPath = GetFFmpegPath();
-            _ffprobePath = GetFFprobePath();
-        }
-
         /// <summary>
         /// Логгер.
         /// </summary>
@@ -295,8 +289,11 @@ namespace Pege.Services
 
                 if (encodedData.Length == 0)
                     throw new Exception(string.Format(Error.FFmpegOutputError, filePath));
-                
-                File.Copy(tempOutput, filePath, true);                
+
+                lock (_lockManager.GetLock(filePath))
+                {
+                    File.Copy(tempOutput, filePath, true);
+                }
 
                 return encodedData;
             }
@@ -449,11 +446,13 @@ namespace Pege.Services
         /// <summary>
         /// Путь к утилите FFmpeg.
         /// </summary>
-        private readonly string _ffmpegPath;
+        private readonly string _ffmpegPath = GetFFmpegPath();
 
         /// <summary>
         /// Путь к утилите FFprobeg.
         /// </summary>
-        private readonly string _ffprobePath;
+        private readonly string _ffprobePath = GetFFprobePath();
+
+        private readonly FileLockManager _lockManager = lockManager;
     }
 }

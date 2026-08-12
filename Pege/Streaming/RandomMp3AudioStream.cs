@@ -265,13 +265,18 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
                 throw new ApplicationException(Error.DirectoryDoesNotExist);
 
             var path = Path.Combine(CastedStatus.Path!, fileName);
-            if (File.Exists(path))
+
+            var lockManager = _serviceProvider.GetRequiredService<FileLockManager>();
+            lock (lockManager.GetLock(path))
             {
-                File.Delete(path);
-                _ = UpdateTotalTracksAndDurationAsync();
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                    _ = UpdateTotalTracksAndDurationAsync();
+                }
+                else
+                    throw new FileNotFoundException();
             }
-            else
-                throw new FileNotFoundException();
         }
 
         /// <summary>
