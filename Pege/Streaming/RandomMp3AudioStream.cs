@@ -366,7 +366,7 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
         }
 
         /// <summary>
-        /// Метод пуьликации в Telegram-канале сообшения о новых треках.
+        /// Метод публикации в Telegram-канале сообшения о новых треках.
         /// </summary>
         /// <param name="list">Список новых треков.</param>
         private async Task SendNewTracksInfoToTgChannel(List<(string artist, string title)> list)
@@ -395,7 +395,7 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
 
         /// <summary>
         /// Идентификаторы сообщений в telegram-канале о новых треках.
-        /// Хранятся, чтобы в вслучае перезапуска сервера, их можно было удалить.
+        /// Хранятся, чтобы в случае сбоя, их можно было удалить на следующей итерации.
         /// </summary>
         private readonly HashSet<int> _tgMessageId = [];
 

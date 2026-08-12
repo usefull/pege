@@ -105,7 +105,7 @@ namespace Pege.Streaming
         protected virtual Channel<Chunk> CreateChannel() => Channel.CreateBounded<Chunk>(new BoundedChannelOptions(30)
         {
             FullMode = BoundedChannelFullMode.DropOldest,
-            SingleReader = false,
+            SingleReader = true,
             SingleWriter = true
         });
 

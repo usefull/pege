@@ -267,10 +267,20 @@ namespace Pege.Services
                     }
                 };
 
-                process.Start();
-                process.BeginErrorReadLine();
-
-                await process.WaitForExitAsync(cancellationToken);
+                try
+                {
+                    process.Start();
+                    process.BeginErrorReadLine();
+                    await process.WaitForExitAsync(cancellationToken);
+                }
+                finally
+                {
+                    try
+                    {
+                        if (!process.HasExited) process.Kill(entireProcessTree: true);
+                    }
+                    catch { }
+                }
 
                 if (process.ExitCode != 0)
                 {
@@ -333,9 +343,15 @@ namespace Pege.Services
                 };
 
                 process.Start();
-                process.WaitForExit(5000);
-
-                return process.ExitCode == 0;
+                if (process.WaitForExit(TimeSpan.FromSeconds(5)))
+                {
+                    return process.ExitCode == 0;
+                }
+                else
+                {
+                    try { process.Kill(); } catch { }
+                    return false;
+                }
             }
             catch
             {
@@ -364,9 +380,15 @@ namespace Pege.Services
                 };
 
                 process.Start();
-                process.WaitForExit(5000);
-
-                return process.ExitCode == 0;
+                if (process.WaitForExit(TimeSpan.FromSeconds(5)))
+                {
+                    return process.ExitCode == 0;
+                }
+                else
+                {
+                    try { process.Kill(); } catch { }
+                    return false;
+                }
             }
             catch
             {
