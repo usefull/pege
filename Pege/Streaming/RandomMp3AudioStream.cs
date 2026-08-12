@@ -12,8 +12,17 @@ using System.Text;
 
 namespace Pege.Streaming
 {
+    /// <summary>
+    /// Функционал стрима, транслирующего по кругу mp3-файлы из указанной папки.
+    /// </summary>
     internal class RandomMp3AudioStream : Stream<FileAudioStreamStatus, AudioChunk>, IFileUploader
     {
+        /// <summary>
+        /// Конструктор.
+        /// </summary>
+        /// <param name="status">Информация о стриме.</param>
+        /// <param name="serviceProvider">Провайдер сервисов DI.</param>
+        /// <exception cref="ApplicationException">В случае, если каталог с файлами не существует.</exception>
         public RandomMp3AudioStream(FileAudioStreamStatus status, IServiceProvider serviceProvider) : base(status, serviceProvider)
         {
             CastedStatus.Path = status.Path;
@@ -28,6 +37,10 @@ namespace Pege.Streaming
             _ = UpdateTotalTracksAndDurationAsync();
         }
 
+        /// <summary>
+        /// Метод реалиует основной цикл трансляции.
+        /// </summary>
+        /// <param name="cancellationToken">Токен остановки трансляции.</param>
         protected override async Task BroadcastCycleAsync(CancellationToken cancellationToken)
         {
             _log.Information(Message.BroadcastingStarted);
@@ -79,7 +92,7 @@ namespace Pege.Streaming
         }
 
         /// <summary>
-        /// Метод отправляет трек в поток с синхронизацией времени.
+        /// Метод отправляет трек в стрим с синхронизацией времени.
         /// </summary>
         private async Task BroadcastTrackAsync(byte[] encodedData, CancellationToken cancellationToken)
         {
@@ -127,6 +140,9 @@ namespace Pege.Streaming
             }
         }
 
+        /// <summary>
+        /// Метод публикации сообщения о текущем треке в Telegram-канал.
+        /// </summary>
         private async Task SendCurrentTrackInfoToTgChannel()
         {
             var tgService = _serviceProvider.GetService<TelegramService>();
@@ -144,7 +160,7 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
         }
 
         /// <summary>
-        /// Метод удаления старых сообщений в Tg-канале.
+        /// Метод удаления старых сообщений в Telegram-канале.
         /// </summary>
         /// <param name="newMessage">Последнее сообщение,
         /// которое только-что опубликовано и не должно быть удалено.</param>
@@ -171,6 +187,10 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
             }
         }
 
+        /// <summary>
+        /// Метод генерации строки с метаданными.
+        /// </summary>
+        /// <returns></returns>
         private string GenerateMetadataString() => $"StreamTitle='{CastedStatus.Artist} - {CastedStatus.Track}';NextTrack='{CastedStatus.NextArtist} - {CastedStatus.NextTrack}';";
 
         /// <summary>
@@ -203,7 +223,7 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
         }
 
         /// <summary>
-        /// Метод обновляет информацию о продолжительности воспроизведения и количестве треков.
+        /// Метод обновляет статус стрима информацией о продолжительности воспроизведения и количестве треков.
         /// </summary>
         private async Task UpdateTotalTracksAndDurationAsync()
         {
@@ -233,6 +253,12 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
             CastedStatus.TotalTracks = processed;
         }
 
+        /// <summary>
+        /// Метод удаления трека из плейлиста.
+        /// </summary>
+        /// <param name="fileName">Имя файла.</param>
+        /// <exception cref="ApplicationException">В случае, если каталог плейлиста не существует.</exception>
+        /// <exception cref="FileNotFoundException">В случае, если файл не найден в плейлисте.</exception>
         public void DeleteTrack(string fileName)
         {
             if (!Path.Exists(CastedStatus.Path))
@@ -248,6 +274,14 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
                 throw new FileNotFoundException();
         }
 
+        /// <summary>
+        /// Метод загрузки новых треков в плейл лист.
+        /// </summary>
+        /// <param name="reader">Содержимое http-запроса.</param>
+        /// <param name="quietly">Флаг предписывает не публиковать в Telegram-канале информации о новых треках.</param>
+        /// <param name="cancellationToken">Токен отмены операции.</param>
+        /// <returns>Результаты загрузки.</returns>
+        /// <exception cref="ApplicationException">В случаях ошибок чтения содержимого запроса, а так же если файл уже есть в плейлисте или каталог не существует.</exception>
         public async Task<UploadResult> UploadAsync(MultipartReader reader, bool quietly, CancellationToken cancellationToken)
         {
             var result = new UploadResult();
@@ -331,6 +365,10 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
             return result;
         }
 
+        /// <summary>
+        /// Метод пуьликации в Telegram-канале сообшения о новых треках.
+        /// </summary>
+        /// <param name="list">Список новых треков.</param>
         private async Task SendNewTracksInfoToTgChannel(List<(string artist, string title)> list)
         {
             var config = _serviceProvider.GetService<IConfiguration>();
@@ -355,10 +393,27 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
             await tgService.SendMessageAsync(message.ToString(), Status.TelegramChannelId!);
         }
 
+        /// <summary>
+        /// Идентификаторы сообщений в telegram-канале о новых треках.
+        /// Хранятся, чтобы в вслучае перезапуска сервера, их можно было удалить.
+        /// </summary>
         private readonly HashSet<int> _tgMessageId = [];
+
+        /// <summary>
+        /// Объект блокировки для доступа к <see cref="_tgMessageId"/>.
+        /// </summary>
         private readonly SemaphoreSlim _lockTgMessageId = new(1, 1);
+
+        /// <summary>
+        /// Сервис FFmpeg для работы с медиафайлами.
+        /// </summary>
         private readonly FFmpegService _ffmpegService;
+
+        /// <summary>
+        /// История трансляции треков.
+        /// </summary>
         private readonly List<string> _history = [];
+
         private readonly Random _random = new();
         private readonly int _targetBitrate = 320;
         private readonly int _targetSamplerate = 44100;

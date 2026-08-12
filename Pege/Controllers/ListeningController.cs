@@ -6,10 +6,19 @@ using Pege.Streaming;
 
 namespace Pege.Controllers
 {
+    /// <summary>
+    /// Функционал контроллера HTTP-запросов, обрабатывающих воспроизведение стрима.
+    /// </summary>
+    /// <param name="serviceProvider">Провайдер сервисов DI.</param>
     [Route("stream/{streamId}")]
     [ApiController]
     public class ListeningController(IServiceProvider serviceProvider) : ControllerBase
     {
+        /// <summary>
+        /// Метод обработки запроса на воспроизведене стрима.
+        /// </summary>
+        /// <param name="streamId">Идентификатор стрима.</param>
+        /// <exception cref="InvalidOperationException">В случае, если не удалосьопределить тип стрима и выбрать корректный коннектор.</exception>
         [HttpGet]
         public async Task<IActionResult> Get(string streamId)
         {

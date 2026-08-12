@@ -3,11 +3,21 @@ using Pege.Interfaces;
 
 namespace Pege.Streaming
 {
+    /// <summary>
+    /// Коннектор аудио-стрима и контроллера.
+    /// </summary>
     internal class AudioStreamConnector : IConnector
     {
         private const int IcyMetaInterval = 131072;
         private static readonly byte[] EmptyMetaBlock = [0x00];
 
+        /// <summary>
+        /// Метод соединения стрима и контроллера.
+        /// </summary>
+        /// <param name="stream">Стрим.</param>
+        /// <param name="httpRequest">HTTP-запрос.</param>
+        /// <param name="httpResponse">HTTP-ответ.</param>
+        /// <param name="cancellationToken">Токен остановки.</param>
         public async Task ConsumeAsync(IStream stream, HttpRequest httpRequest, HttpResponse httpResponse, CancellationToken cancellationToken)
         {
             bool supportIcy = httpRequest.Headers.ContainsKey("Icy-MetaData")
