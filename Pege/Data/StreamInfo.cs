@@ -83,6 +83,19 @@ namespace Pege.Data
         }
 
         /// <summary>
+        /// Метод копирования данных из другой сущности.
+        /// </summary>
+        /// <param name="info">Сущность-источник.</param>
+        public virtual void CopyFrom(StreamInfo info)
+        {
+            Id = info.Id;
+            Title = info.Title;
+            Country = info.Country;
+            ImplType = info.ImplType;
+            TelegramChannelId = info.TelegramChannelId;
+        }
+
+        /// <summary>
         /// Метод создания сущности конкретного типа, производного от <see cref="StreamStatus"/>.
         /// </summary>
         /// <returns></returns>

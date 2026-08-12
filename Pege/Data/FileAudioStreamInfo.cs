@@ -27,5 +27,19 @@ namespace Pege.Data
         {
             Path = Path
         };
+
+        /// <summary>
+        /// Метод копирования данных из другой сущности.
+        /// </summary>
+        /// <param name="info">Сущность-источник.</param>
+        public override void CopyFrom(StreamInfo info)
+        {
+            base.CopyFrom(info);
+
+            if (info is FileAudioStreamInfo fileInfo)
+            {
+                Path = fileInfo.Path;
+            }
+        }
     }
 }

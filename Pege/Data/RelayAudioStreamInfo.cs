@@ -23,5 +23,20 @@ namespace Pege.Data
             Uri = Uri,
             MetadataSwap = MetadataSwap
         };
+
+        /// <summary>
+        /// Метод копирования данных из другой сущности.
+        /// </summary>
+        /// <param name="info">Сущность-источник.</param>
+        public override void CopyFrom(StreamInfo info)
+        {
+            base.CopyFrom(info);
+
+            if (info is RelayAudioStreamInfo relayInfo)
+            {
+                Uri = relayInfo.Uri;
+                MetadataSwap = relayInfo.MetadataSwap;
+            }
+        }
     }
 }

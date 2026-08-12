@@ -178,10 +178,52 @@ namespace Pege.Streaming
             return entity.Entity.ToStatus();
         }
 
+        public async Task<StreamStatus> UpdateAsync(StreamInfo info)
+        {
+            var isActive = true;
+
+            try
+            {
+                _ = this[info.Id!];
+            }
+            catch (StreamUnavailableException)
+            {
+                isActive = false;
+            }
+
+            try
+            {
+                using var db = dataContextFactory.CreateDbContext();
+                var dbInfo = await db.Streams.FirstOrDefaultAsync(s => s.Id == info.Id)
+                    ?? throw new UnknownStreamException();
+
+                dbInfo.CopyFrom(info);
+
+                await db.SaveChangesAsync();
+
+                return dbInfo.ToStatus();
+            }
+            finally
+            {
+                if (isActive)
+                {
+                    Destroy(info.Id!);
+                    await CreateAsync(info.Id!);
+                }
+            }
+        }
+
+        public async Task DeleteAsync(string streamId)
+        {
+            using var db = dataContextFactory.CreateDbContext();
+            await db.Streams.Where(s => s.Id == streamId).ExecuteDeleteAsync();
+            Destroy(streamId);
+        }
+
         private async Task<StreamInfo?> GetStreamInfoAsync(string id)
         {
             using var db = dataContextFactory.CreateDbContext();            
-            return await db.Streams.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id.ToLower().Trim());            
+            return await db.Streams.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id.ToLower().Trim());
         }
 
         private async Task ResetStreamStopedAsync(string id)

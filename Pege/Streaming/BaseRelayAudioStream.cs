@@ -51,7 +51,7 @@ namespace Pege.Streaming
                                     metadataLeft = 0;
 
                                     var strMetadata = Encoding.UTF8.GetString(metadata!);
-                                    ArrayPool<byte>.Shared.Return(metadata);
+                                    ArrayPool<byte>.Shared.Return(metadata!);
                                     metadata = null;
 
                                     _ = Task.Run(() =>

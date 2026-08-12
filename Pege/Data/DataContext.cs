@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 
 namespace Pege.Data
 {
@@ -28,6 +29,7 @@ namespace Pege.Data
                 .Property(r => r.Uri)
                 .HasColumnName("Source")
                 .HasMaxLength(500);
+
 
             modelBuilder.Entity<StreamInfo>()
                 .Property(s => s.Registered)
@@ -72,6 +74,32 @@ namespace Pege.Data
             );
 
             base.OnModelCreating(modelBuilder);
+        }
+
+        public override int SaveChanges(bool acceptAllChangesOnSuccess)
+        {
+            ValidateEntities();
+            return base.SaveChanges(acceptAllChangesOnSuccess);
+        }
+
+        public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+        {
+            ValidateEntities();
+            return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        }
+
+        private void ValidateEntities()
+        {
+            var entities = ChangeTracker.Entries()
+                .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified)
+                .Select(e => e.Entity);
+
+            foreach (var entity in entities)
+            {
+                var validationContext = new ValidationContext(entity);
+                // Выбросит ValidationException, если Path (или другие [Required] поля) окажется null
+                Validator.ValidateObject(entity, validationContext, validateAllProperties: true);
+            }
         }
     }
 }

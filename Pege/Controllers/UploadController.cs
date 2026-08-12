@@ -5,6 +5,7 @@ using Pege.Extensions;
 using Pege.Interfaces;
 using Pege.Resource;
 using Pege.Streaming;
+using System.ComponentModel.DataAnnotations;
 
 namespace Pege.Controllers
 {
@@ -30,10 +31,10 @@ namespace Pege.Controllers
             var quietly = RouteData.Values["quietly"]?.ToString() == "q";
 
             if (!(Request.ContentType?.IsMultipartContentType() ?? false))
-                return BadRequest(Error.MultipartFormDataRequired);
+                throw new ValidationException(Error.MultipartFormDataRequired);
 
             if (factory[streamId!] is not IFileUploader stream)
-                return BadRequest(Error.StreamDoesntSupportUploading);
+                throw new ValidationException(Error.StreamDoesntSupportUploading);
 
             var boundary = MediaTypeHeaderValue.Parse(Request.ContentType).GetBoundary(70);
             var reader = new MultipartReader(boundary, HttpContext.Request.Body);
@@ -45,16 +46,9 @@ namespace Pege.Controllers
         public async Task<IActionResult> Delete(string streamId, string filename)
         {
             if (factory[streamId] is not IFileUploader stream)
-                return BadRequest(Error.StreamDoesntSupportUploading);
+                throw new ValidationException(Error.StreamDoesntSupportUploading);
 
-            try
-            {
-                stream.DeleteTrack(filename);
-            }
-            catch (FileNotFoundException)
-            {
-                return NotFound(Error.FileNotFound);
-            }
+            stream.DeleteTrack(filename);
 
             return Ok();
         }

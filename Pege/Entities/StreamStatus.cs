@@ -68,7 +68,7 @@ namespace Pege.Entities
         {
             var info = CreateInfo();
 
-            info.Id = Id;
+            info.Id = Id?.Trim().ToLower();
             info.Title = Title;
             info.Country = Country;
             info.ImplType = ImplType;

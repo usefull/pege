@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Pege.Entities;
 using Pege.Streaming;
-using System.ComponentModel.DataAnnotations;
 
 namespace Pege.Controllers
 {
@@ -30,7 +29,7 @@ namespace Pege.Controllers
             return await GetStatusAsync(null);
         }
 
-        [HttpPost("start/{id?}")]
+        [HttpPut("start/{id?}")]
         public async Task<IActionResult> StartAsync(string? id)
         {
             var streamId = id?.Trim().ToLower();
@@ -43,7 +42,7 @@ namespace Pege.Controllers
             return Ok();
         }
 
-        [HttpPost("stop/{id?}")]
+        [HttpPut("stop/{id?}")]
         public async Task<IActionResult> StopAsync(string? id)
         {
             var streamId = id?.Trim().ToLower();
@@ -56,26 +55,27 @@ namespace Pege.Controllers
             return Ok();
         }
 
-        [HttpPut]
-        public async Task<IActionResult> PutStreamAsync([FromBody] StreamDescriptor streamStatus)
+        [HttpPost]
+        public async Task<IActionResult> PostStreamAsync([FromBody] StreamDescriptor streamStatus)
         {
-            //var results = new List<ValidationResult>();
-            //var context = new ValidationContext(streamStatus);
+            var info = streamStatus.ToInfo();
+            var streamInfo = await factory.RegisterAsync(info);
+            return Ok(streamInfo);
+        }
 
-            //bool isValid = Validator.TryValidateObject(streamStatus, context, results, true);
-            //if (!isValid)
-            //    return BadRequest(results);
+        [HttpPut]
+        public async Task<IActionResult> PutStreamAsync([FromBody] StreamDescriptor streamDescription)
+        {
+            var info = streamDescription.ToInfo();
+            var streamInfo = await factory.UpdateAsync(info);
+            return Ok(streamInfo);
+        }
 
-            try
-            {
-                var info = streamStatus.ToInfo();
-                var streamInfo = await factory.RegisterAsync(info);
-                return Ok(streamInfo);
-            }
-            catch (Exception ex)
-            {
-                throw;
-            }
+        [HttpDelete("{streamId}")]
+        public async Task<IActionResult> DeleteStreamAsync(string streamId)
+        {
+            await factory.DeleteAsync(streamId);
+            return Ok();
         }
     }
 }
