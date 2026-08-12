@@ -7,6 +7,7 @@ using Pege.Services;
 using Pege.Startup;
 using Pege.Streaming;
 using Serilog;
+using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 
 try
@@ -58,7 +59,8 @@ try
                     typeInfo.PolymorphismOptions = new JsonPolymorphismOptions
                     {
                         // Оставляем пустым, чтобы поле "$type" НЕ появлялось
-                        TypeDiscriminatorPropertyName = null
+                        TypeDiscriminatorPropertyName = null,
+                        UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FallBackToNearestAncestor
                     };
 
                     // Явно регистрируем всех наследников
