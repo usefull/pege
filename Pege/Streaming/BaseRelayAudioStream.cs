@@ -5,8 +5,16 @@ using System.Text;
 
 namespace Pege.Streaming
 {
+    /// <summary>
+    /// Базовый фнкцинал стрима-ретранслятора аудио.
+    /// </summary>
     internal abstract class BaseRelayAudioStream : Stream<RelayAudioStreamStatus, AudioChunk>
     {
+        /// <summary>
+        /// Конструктор.
+        /// </summary>
+        /// <param name="status">Информация о стриме.</param>
+        /// <param name="serviceProvider">Провайдер сервисов DI.</param>
         public BaseRelayAudioStream(RelayAudioStreamStatus status, IServiceProvider serviceProvider) : base(status, serviceProvider)
         {
             CastedStatus.Uri = status.Uri;
@@ -14,6 +22,16 @@ namespace Pege.Streaming
             Status.ContentType = "audio/mpeg";
         }
 
+        /// <summary>
+        /// Метод ретрансляции.
+        /// </summary>
+        /// <param name="networkStream">Сетевой источник ретранслируемых данных.</param>
+        /// <param name="bufferSize">Размер буфера.</param>
+        /// <param name="streamReadTimeout">Таймаут чтения источника.</param>
+        /// <param name="bitrate">Битрейт аудио.</param>
+        /// <param name="metaInterval">Интервал между блоками металанных.</param>
+        /// <param name="cancellationToken">Токен отмены ретрансляции.</param>
+        /// <returns></returns>
         protected virtual async Task RelayCycleAsync(Stream networkStream, int bufferSize, TimeSpan streamReadTimeout, int bitrate, int metaInterval, CancellationToken cancellationToken)
         {
             var networkBuffer = ArrayPool<byte>.Shared.Rent(bufferSize);
@@ -54,47 +72,7 @@ namespace Pege.Streaming
                                     ArrayPool<byte>.Shared.Return(metadata!);
                                     metadata = null;
 
-                                    _ = Task.Run(() =>
-                                    {
-                                        var streamTitle = strMetadata.Split(';').FirstOrDefault(s => s.StartsWith("StreamTitle='"));
-                                        if (streamTitle == null)
-                                        {
-                                            CastedStatus.Track = string.Empty;
-                                            CastedStatus.Artist = string.Empty;
-                                        }
-                                        else
-                                        {
-                                            var start = streamTitle.IndexOf('\'') + 1;
-                                            var end = streamTitle.LastIndexOf('\'');
-                                            if (start < 1 || end < 0)
-                                            {
-                                                CastedStatus.Track = string.Empty;
-                                                CastedStatus.Artist = string.Empty;
-                                            }
-                                            else
-                                            {
-                                                var parts = streamTitle[start..end]
-                                                    ?.Split(" - ").Select(s => s.Trim()).ToList();
-
-                                                if (CastedStatus.MetadataSwap ?? false)
-                                                {
-                                                    if (parts?.Count > 0)
-                                                        CastedStatus.Track = parts[0];
-
-                                                    if (parts?.Count > 1)
-                                                        CastedStatus.Artist = parts[1];
-                                                }
-                                                else
-                                                {
-                                                    if (parts?.Count > 0)
-                                                        CastedStatus.Artist = parts[0];
-
-                                                    if (parts?.Count > 1)
-                                                        CastedStatus.Track = parts[1];
-                                                }
-                                            }
-                                        }
-                                    }, cancellationToken);
+                                    _ = UpdateStatusWithMetadataAsync(strMetadata, cancellationToken);
                                 }
                                 else
                                 {
@@ -185,6 +163,57 @@ namespace Pege.Streaming
             }
         }
 
+        /// <summary>
+        /// Метод обновления статуса потока информацией из метаданных ретранслируемого потока.
+        /// </summary>
+        /// <param name="strMetadata">Строка метаданных.</param>
+        /// <param name="cancellationToken">Токен отмены операции.</param>
+        private Task UpdateStatusWithMetadataAsync(string strMetadata, CancellationToken cancellationToken) => Task.Run(() =>
+        {
+            var streamTitle = strMetadata.Split(';').FirstOrDefault(s => s.StartsWith("StreamTitle='"));
+            if (streamTitle == null)
+            {
+                CastedStatus.Track = string.Empty;
+                CastedStatus.Artist = string.Empty;
+            }
+            else
+            {
+                var start = streamTitle.IndexOf('\'') + 1;
+                var end = streamTitle.LastIndexOf('\'');
+                if (start < 1 || end < 0)
+                {
+                    CastedStatus.Track = string.Empty;
+                    CastedStatus.Artist = string.Empty;
+                }
+                else
+                {
+                    var parts = streamTitle[start..end]
+                        ?.Split(" - ").Select(s => s.Trim()).ToList();
+
+                    if (CastedStatus.MetadataSwap ?? false)
+                    {
+                        if (parts?.Count > 0)
+                            CastedStatus.Track = parts[0];
+
+                        if (parts?.Count > 1)
+                            CastedStatus.Artist = parts[1];
+                    }
+                    else
+                    {
+                        if (parts?.Count > 0)
+                            CastedStatus.Artist = parts[0];
+
+                        if (parts?.Count > 1)
+                            CastedStatus.Track = parts[1];
+                    }
+                }
+            }
+        }, cancellationToken);
+
+        /// <summary>
+        /// Метод формирования строки метаданных.
+        /// </summary>
+        /// <returns>Строка с метаданными.</returns>
         private string GenerateMetadataString() => $"StreamTitle='{CastedStatus.Artist} - {CastedStatus.Track}';";
     }
 }
