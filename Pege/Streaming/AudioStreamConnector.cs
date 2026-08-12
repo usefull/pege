@@ -1,5 +1,7 @@
 ﻿using Pege.Entities;
 using Pege.Interfaces;
+using System.Text;
+using Telegram.Bot.Requests.Abstractions;
 
 namespace Pege.Streaming
 {
@@ -23,6 +25,12 @@ namespace Pege.Streaming
             bool supportIcy = httpRequest.Headers.ContainsKey("Icy-MetaData")
                            && httpRequest.Headers["Icy-MetaData"] == "1";
 
+            string userAgent = httpRequest.Headers.UserAgent.ToString() ?? "";
+            bool isBrowser = userAgent.Contains("Mozilla") ||
+                             userAgent.Contains("Chrome") ||
+                             userAgent.Contains("Safari") ||
+                             userAgent.Contains("Edge");
+
             httpResponse.ContentType = stream.Status.ContentType;
             httpResponse.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
             httpResponse.Headers.Append("Pragma", "no-cache");
@@ -30,7 +38,10 @@ namespace Pege.Streaming
             httpResponse.Headers.Append("X-Content-Type-Options", "nosniff");
             httpResponse.Headers.Append("Access-Control-Expose-Headers", "icy-metaint, icy-pub, icy-name");
 
-            httpResponse.Headers.Append("icy-name", Uri.EscapeDataString($"{stream.Status.Title} ||| {stream.Status.Country}"));
+            httpResponse.Headers.Append("icy-name", isBrowser
+                ? Uri.EscapeDataString($"{stream.Status.Title} ||| {stream.Status.Country}")
+                : Encoding.GetEncoding("ISO-8859-1").GetString(Encoding.UTF8.GetBytes($"{stream.Status.Title} ||| {stream.Status.Country}")));
+
             httpResponse.Headers.Append("icy-pub", "1");
             if (supportIcy)
                 httpResponse.Headers.Append("icy-metaint", IcyMetaInterval.ToString());
