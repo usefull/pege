@@ -38,6 +38,13 @@ namespace Pege.Streaming
             _cts.Cancel();
             try
             {
+                lock (_lock)
+                {
+                    foreach (var session in _consumers)
+                        session.Writer.TryComplete();
+
+                    _consumers.Clear();
+                }
                 _task?.GetAwaiter().GetResult();
                 _ = SetStreamStopped(Status.Id!);
             }
