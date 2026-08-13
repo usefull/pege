@@ -1,4 +1,5 @@
-﻿using Pege.Entities;
+﻿
+using Pege.Entities;
 using Pege.Interfaces;
 using System.Text;
 using Telegram.Bot.Requests.Abstractions;
@@ -93,7 +94,7 @@ namespace Pege.Streaming
                         }
                     }
 
-                    await httpResponse.Body.FlushAsync(cancellationToken);
+                    //await httpResponse.Body.FlushAsync(cancellationToken);
                 }
             }
             catch (Exception ex) when (ex is OperationCanceledException or IOException) { }

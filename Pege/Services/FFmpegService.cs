@@ -1,4 +1,5 @@
-﻿using Pege.Resource;
+﻿
+using Pege.Resource;
 using System.Diagnostics;
 using System.Text;
 

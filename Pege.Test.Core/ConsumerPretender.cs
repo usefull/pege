@@ -1,4 +1,6 @@
 ﻿
+using System.Diagnostics;
+
 namespace Pege.Test.Core
 {
     public class ConsumerPretender : IDisposable
@@ -15,6 +17,7 @@ namespace Pege.Test.Core
 
         public event EventHandler<ConsumerErrorEventArgs>? ConnectionLost;
         public event EventHandler<ConsumerEventArgs>? ConnectionEstablished;
+        public event EventHandler<ConsumerDataDelayEventArgs>? DataDelay;
         public event EventHandler<ConsumerErrorEventArgs>? ConnectionFailed;
 
         public ConsumerPretender(int id, string streamUrl, TimeSpan? initialDelay = null)
@@ -25,9 +28,14 @@ namespace Pege.Test.Core
             _id = id;
             _streamUrl = streamUrl;
             _initialDelay = initialDelay ?? TimeSpan.FromMilliseconds(500);
-            _httpClient = new HttpClient
+            var handler = new SocketsHttpHandler
             {
-                Timeout = TimeSpan.FromSeconds(30)
+                MaxConnectionsPerServer = int.MaxValue,
+                PooledConnectionLifetime = TimeSpan.FromMinutes(5)
+            };
+            _httpClient = new HttpClient(handler)
+            {
+                Timeout = Timeout.InfiniteTimeSpan
             };
             _cts = new CancellationTokenSource();
             _connectionLock = new SemaphoreSlim(1, 1);
@@ -76,9 +84,24 @@ namespace Pege.Test.Core
                 var buffer = new byte[8192];
                 int bytesRead;
 
-                while ((bytesRead = await stream.ReadAsync(buffer, cancellationToken)) > 0)
+                var stopwatch = new Stopwatch();
+
+                while (true)
                 {
-                    await Task.Delay(10, cancellationToken);
+                    stopwatch.Restart();
+
+                    bytesRead = await stream.ReadAsync(buffer, cancellationToken);
+
+                    stopwatch.Stop();
+
+                    if (bytesRead <= 0)
+                        break;
+
+                    if (stopwatch.ElapsedMilliseconds > 2000)
+                    {
+                        var delay = stopwatch.ElapsedMilliseconds;
+                        _ = Task.Run(() => DataDelay?.Invoke(this, new ConsumerDataDelayEventArgs { Id = _id, Delay = delay }));
+                    }
                 }
             }
             catch (OperationCanceledException)
@@ -139,23 +162,12 @@ namespace Pege.Test.Core
                 return;
 
             _disposed = true;
+            _isConnected = false;
 
             _cts.Cancel();
 
-            try
-            {
-                _playerTask?.Wait(TimeSpan.FromSeconds(5));
-            }
-            catch (AggregateException)
-            {
-            }
-            finally
-            {
-                _cts.Dispose();
-                _httpClient.Dispose();
-                _connectionLock.Dispose();
-                _isConnected = false;
-            }
+            _httpClient.Dispose();
+            _connectionLock.Dispose();
         }
     }
 }
