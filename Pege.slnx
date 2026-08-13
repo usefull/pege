@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/Test/">
+    <Project Path="Pege.Test.Core/Pege.Test.Core.csproj" Id="96bf12ac-ebde-4373-be48-015467e51bff" />
+    <Project Path="SimpleTest/SimpleTest.csproj" Id="7700051c-b338-4780-a672-f97204481385" />
+  </Folder>
   <Project Path="Pege.Analyzers/Pege.Analyzers.csproj" Id="98822e06-a696-4db5-9ae6-aa6360224646" />
   <Project Path="Pege/Pege.csproj" />
 </Solution>
