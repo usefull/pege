@@ -155,7 +155,7 @@
     <value>The directory containing files does not exist: {0}.</value>
   </data>
   <data name="FFmpegNotAvailable" xml:space="preserve">
-    <value>FFmpeg not available. Using original file.</value>
+    <value>FFmpeg not available.</value>
   </data>
   <data name="FFmpegNotFound" xml:space="preserve">
     <value>FFmpeg not found. Make sure FFmpeg is installed and in PATH.</value>

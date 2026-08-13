@@ -116,7 +116,7 @@ namespace Pege.Resource {
         }
         
         /// <summary>
-        ///   Ищет локализованную строку, похожую на FFmpeg not available. Using original file..
+        ///   Ищет локализованную строку, похожую на FFmpeg not available..
         /// </summary>
         internal static string FFmpegNotAvailable {
             get {
