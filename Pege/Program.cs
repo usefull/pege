@@ -28,8 +28,10 @@ try
     {
         // Разрешаем Kestrel пропускать Latin1/UTF-8 байты в заголовках ответа
         options.ResponseHeaderEncodingSelector = _ => System.Text.Encoding.GetEncoding("ISO-8859-1");
-        // Или, если плееры современные:
-        // options.ResponseHeaderEncodingSelector = _ => System.Text.Encoding.UTF8;
+
+        options.Limits.MaxConcurrentConnections = null;
+        options.Limits.MaxConcurrentUpgradedConnections = null;
+        options.Limits.MinResponseDataRate = null;
     });
 
     builder.Services.Configure<FormOptions>(options =>
