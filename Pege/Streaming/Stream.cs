@@ -4,6 +4,7 @@ using Pege.Data;
 using Pege.Entities;
 using Pege.Interfaces;
 using Serilog;
+using System.Diagnostics;
 using System.Threading.Channels;
 
 namespace Pege.Streaming
@@ -66,9 +67,11 @@ namespace Pege.Streaming
             lock (_lock)
             {
                 _consumers.Add(session);
+
+                _isMeasuring = false; // ДЛЯ ТЕСТА
             }
 
-            _log.Information($"Consumers: {_consumers.Count}");
+            //_log.Information($"Consumers: {_consumers.Count}");
 
             return (channel.Reader, sessionId);
         }
@@ -84,17 +87,82 @@ namespace Pege.Streaming
                     _consumers.Remove(session);
                 }
             }
-            _log.Information($"Consumers: {_consumers.Count}");
+            //_log.Information($"Consumers: {_consumers.Count}");
         }
 
+        //protected void BroadcastChunk(Chunk chunk)
+        //{
+        //    lock (_lock)
+        //    {
+        //        if (_consumers.Count == 0) return;
+
+        //        foreach (var consumer in _consumers)
+        //            consumer.Writer.TryWrite(chunk);
+        //    }
+        //}
+
+        /// <summary>
+        /// ДЛЯ ТЕСТА
+        /// </summary>
+        /// <param name="chunk"></param>
         protected void BroadcastChunk(Chunk chunk)
         {
+            long currentTimestamp = Stopwatch.GetTimestamp();
+            int currentConsumersCount;
+
             lock (_lock)
             {
-                if (_consumers.Count == 0) return;
+                currentConsumersCount = _consumers.Count;
+                if (currentConsumersCount > 0)
+                {
+                    foreach (var consumer in _consumers)
+                        consumer.Writer.TryWrite(chunk);
+                }
+            }
 
-                foreach (var consumer in _consumers)
-                    consumer.Writer.TryWrite(chunk);
+            // Если клиентов нет — сбрасываем состояние и ничего не мерим
+            if (currentConsumersCount == 0)
+            {
+                _lastBroadcastTimestamp = 0;
+                _isMeasuring = false;
+                return;
+            }
+
+            // Перезапуск окна измерений, если флаг был сброшен в Subscribe()
+            if (!_isMeasuring)
+            {
+                _isMeasuring = true;
+                _startMeasureTimestamp = currentTimestamp;
+                _lastBroadcastTimestamp = currentTimestamp;
+                _chunksSentInInterval = 0;
+                _maxDelayInIntervalTicks = 0;
+                return; // Первый чанк после коннекта берем за точку отсчета времени
+            }
+
+            // Проверяем, укладываемся ли мы в 10-секундное окно
+            if (currentTimestamp - _startMeasureTimestamp <= MeasureDurationTicks)
+            {
+                // Измеряем ритмичность между чанками внутри окна
+                long elapsedTicks = currentTimestamp - _lastBroadcastTimestamp;
+                if (elapsedTicks > _maxDelayInIntervalTicks)
+                {
+                    _maxDelayInIntervalTicks = elapsedTicks;
+                }
+                _lastBroadcastTimestamp = currentTimestamp;
+                _chunksSentInInterval++;
+            }
+            else
+            {
+                // 10 секунд истекли! Выводим отчет ровно ОДИН раз за раунд вещания текущего состава
+                if (_chunksSentInInterval > 0)
+                {
+                    double maxDelayMs = (_maxDelayInIntervalTicks * 1000.0) / Stopwatch.Frequency;
+
+                    _log.Information($"[PULSE] 10s Window Finished. Consumers: {currentConsumersCount} | Chunks generated: {_chunksSentInInterval} | Max jitter: {maxDelayMs:F1}ms");
+
+                    // Зануляем счетчик чанков, чтобы лог не спамил каждую итерацию до прихода следующего клиента
+                    _chunksSentInInterval = 0;
+                }
             }
         }
 
@@ -125,5 +193,13 @@ namespace Pege.Streaming
         private readonly CancellationTokenSource _cts = new();
         private readonly List<ConsumerSession> _consumers = [];
         private readonly Lock _lock = new();
+
+        // ТОЛЬКО ДЛЯ ТЕСТА ЗАМЕРА РИТМИЧНОСТИ ГЕНЕРАЦИИ ЧАНКОВ
+        private bool _isMeasuring = false;
+        private long _lastBroadcastTimestamp = 0;
+        private long _maxDelayInIntervalTicks = 0;
+        private int _chunksSentInInterval = 0;
+        private long _startMeasureTimestamp = 0;
+        private static readonly long MeasureDurationTicks = Stopwatch.Frequency * 10; // Строго 10 секунд
     }
 }

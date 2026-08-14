@@ -66,7 +66,7 @@ namespace Pege.Streaming
                     );
 
                     //Публикуем пост в Tg-канале
-                    await SendCurrentTrackInfoToTgChannel();
+                    //await SendCurrentTrackInfoToTgChannel();
 
                     // Отправляем текущий трек клиентам
                     await BroadcastTrackAsync(currentTrackData, cancellationToken);
@@ -97,8 +97,8 @@ namespace Pege.Streaming
         /// </summary>
         private async Task BroadcastTrackAsync(byte[] encodedData, CancellationToken cancellationToken)
         {
-            _log.Information($"Now playing: \"{CastedStatus.Track}\" by {CastedStatus.Artist}");
-            _log.Information($"Next: \"{CastedStatus.NextTrack}\" by {CastedStatus.NextArtist}");
+            //_log.Information($"Now playing: \"{CastedStatus.Track}\" by {CastedStatus.Artist}");
+            //_log.Information($"Next: \"{CastedStatus.NextTrack}\" by {CastedStatus.NextArtist}");
 
             int offset = 0;
             long totalBytes = encodedData.Length;
@@ -423,6 +423,6 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
         private readonly Random _random = new();
         private readonly int _targetBitrate = 320;
         private readonly int _targetSamplerate = 44100;
-        private readonly int _chunkSize = 8192;
+        private readonly int _chunkSize = 32768;
     }
 }
