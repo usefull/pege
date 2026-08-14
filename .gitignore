@@ -62,5 +62,5 @@ nunit-*.xml
 
 # Custom
 deploy.conf
-mp3
+audio
 storage

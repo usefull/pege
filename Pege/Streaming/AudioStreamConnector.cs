@@ -1,6 +1,9 @@
 ﻿
 using Pege.Entities;
 using Pege.Interfaces;
+using Serilog;
+using System.Diagnostics;
+using System.Net.NetworkInformation;
 using System.Text;
 using Telegram.Bot.Requests.Abstractions;
 
@@ -32,12 +35,22 @@ namespace Pege.Streaming
                              userAgent.Contains("Safari") ||
                              userAgent.Contains("Edge");
 
+            //httpRequest.HttpContext.Response.Headers.Remove("Transfer-Encoding");
+
             httpResponse.ContentType = stream.Status.ContentType;
-            httpResponse.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
-            httpResponse.Headers.Append("Pragma", "no-cache");
-            httpResponse.Headers.Append("Connection", "keep-alive");
-            httpResponse.Headers.Append("X-Content-Type-Options", "nosniff");
+            //httpResponse.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
+            httpResponse.Headers.Append("Cache-Control", "no-cache, no-store");
+            //httpResponse.Headers.Append("Pragma", "no-cache");
+            httpResponse.Headers.Append("Connection", "Close");
+            //httpResponse.Headers.Append("X-Content-Type-Options", "nosniff");
             httpResponse.Headers.Append("Access-Control-Expose-Headers", "icy-metaint, icy-pub, icy-name");
+
+            httpResponse.Headers["icy-genre"] = "Mixed";
+            httpResponse.Headers["icy-description"] = "A sync-driven custom radio streaming server";
+            httpResponse.Headers["Server"] = "Icecast 2.4.0-kh10";
+            httpResponse.Headers["Access-Control-Allow-Origin"] = "*";
+            httpResponse.Headers["Access-Control-Allow-Methods"] = "GET, OPTIONS, HEAD";
+            httpResponse.Headers["Access-Control-Allow-Headers"] = "Origin, Accept, X-Requested-With, Content-Type";
 
             httpResponse.Headers.Append("icy-name", isBrowser
                 ? Uri.EscapeDataString($"{stream.Status.Title} ||| {stream.Status.Country}")
@@ -49,16 +62,18 @@ namespace Pege.Streaming
 
             var (reader, sessionId) = stream.Subscribe();
 
-            int bytesSentInCurrentInterval = 0;
-            byte[]? currentMetadata = null;
-
             try
             {
                 await httpResponse.Body.FlushAsync(cancellationToken);
 
+                int bytesSentInCurrentInterval = 0;
+                byte[]? currentMetadata = null;
+
                 await foreach (var chunk in reader.ReadAllAsync(cancellationToken).Cast<AudioChunk>())
                 {
                     byte[]? pendingMetadata = chunk.StreamMetadata;
+
+                    // --- ВЕТКА А: Плеер НЕ поддерживает метаданные ---
                     if (!supportIcy)
                     {
                         await httpResponse.Body.WriteAsync(chunk.Data, cancellationToken);
@@ -66,35 +81,46 @@ namespace Pege.Streaming
                         continue;
                     }
 
+                    // --- ВЕТКА Б: Плеер ПОДДЕРЖИВАЕТ метаданные ---
                     ReadOnlyMemory<byte> audioData = chunk.Data;
 
                     while (audioData.Length > 0)
                     {
+                        // Сколько байт аудио осталось отправить до следующей точки врезки метаданных
                         int bytesLeftInInterval = IcyMetaInterval - bytesSentInCurrentInterval;
                         int bytesToWrite = Math.Min(audioData.Length, bytesLeftInInterval);
 
+                        // Отправляем порцию аудио
                         await httpResponse.Body.WriteAsync(audioData[..bytesToWrite], cancellationToken);
-                        bytesSentInCurrentInterval += bytesToWrite;
-                        audioData = audioData[bytesToWrite..];
 
-                        if (bytesSentInCurrentInterval == IcyMetaInterval)
+                        if (bytesSentInCurrentInterval + bytesToWrite == IcyMetaInterval)
                         {
-                            // Проверяем, изменился ли трек
+                            // Мы дошли до точки врезки! 
+                            // Проверяем, изменились ли метаданные (название трека) по сравнению с прошлым разом
                             if (pendingMetadata != null && !pendingMetadata.AsSpan().SequenceEqual(currentMetadata ?? ReadOnlySpan<byte>.Empty))
                             {
                                 currentMetadata = pendingMetadata;
+                                // Врезаем новые метаданные в поток
                                 await httpResponse.Body.WriteAsync(currentMetadata, cancellationToken);
                             }
                             else
                             {
+                                // Метаданные не изменились — шлем пустой блок (1 байт 0x00)
                                 await httpResponse.Body.WriteAsync(EmptyMetaBlock, cancellationToken);
                             }
 
                             bytesSentInCurrentInterval = 0;
+                            audioData = audioData[bytesToWrite..];
+                        }
+                        else
+                        {
+                            bytesSentInCurrentInterval += bytesToWrite;
+                            audioData = audioData[bytesToWrite..];
                         }
                     }
 
-                    //await httpResponse.Body.FlushAsync(cancellationToken);
+                    // Плавный выталкиватель пакетов в конце каждого чанка
+                    await httpResponse.Body.FlushAsync(cancellationToken);
                 }
             }
             catch (Exception ex) when (ex is OperationCanceledException or IOException) { }
@@ -103,5 +129,7 @@ namespace Pege.Streaming
                 stream.Unsubscribe(sessionId);
             }
         }
+
+        protected readonly Serilog.ILogger _log = Log.Logger.ForContext("Stream", $"[Connector]");
     }
 }

@@ -14,9 +14,9 @@ using System.Text;
 namespace Pege.Streaming
 {
     /// <summary>
-    /// Функционал стрима, транслирующего по кругу mp3-файлы из указанной папки.
+    /// Функционал стрима, транслирующего по кругу аудиофайлы из указанной папки.
     /// </summary>
-    internal class RandomMp3AudioStream : Stream<FileAudioStreamStatus, AudioChunk>, IFileUploader
+    internal class RandomFileAudioStream : Stream<FileAudioStreamStatus, AudioChunk>, IFileUploader
     {
         /// <summary>
         /// Конструктор.
@@ -24,10 +24,10 @@ namespace Pege.Streaming
         /// <param name="status">Информация о стриме.</param>
         /// <param name="serviceProvider">Провайдер сервисов DI.</param>
         /// <exception cref="ApplicationException">В случае, если каталог с файлами не существует.</exception>
-        public RandomMp3AudioStream(FileAudioStreamStatus status, IServiceProvider serviceProvider) : base(status, serviceProvider)
+        public RandomFileAudioStream(FileAudioStreamStatus status, IServiceProvider serviceProvider) : base(status, serviceProvider)
         {
             CastedStatus.Path = status.Path;
-            Status.ContentType = "audio/mpeg";
+            Status.ContentType = "audio/acc";
 
             if (!Path.Exists(CastedStatus.Path))
                 throw new ApplicationException(string.Format(Error.DirectoryDoesNotExist, CastedStatus.Path));
@@ -50,8 +50,9 @@ namespace Pege.Streaming
             {
                 // Загружаем первый трек
                 string currentTrackPath = GetNextFilename();
+                (CastedStatus.Artist, CastedStatus.Track) = _ffmpegService.GetMetadata(currentTrackPath);
                 byte[] currentTrackData = await _ffmpegService.EncodeTrackAsync(currentTrackPath, _targetBitrate, _targetSamplerate, cancellationToken);
-                (CastedStatus.Artist, CastedStatus.Track) = _ffmpegService.GetMp3Metadata(currentTrackPath);
+                
 
                 while (true)
                 {
@@ -59,7 +60,7 @@ namespace Pege.Streaming
 
                     // Асинхронно начинаем загружать следующий трек (параллельно с воспроизведением текущего)
                     string nextTrackPath = GetNextFilename();
-                    (CastedStatus.NextArtist, CastedStatus.NextTrack) = _ffmpegService.GetMp3Metadata(nextTrackPath);
+                    (CastedStatus.NextArtist, CastedStatus.NextTrack) = _ffmpegService.GetMetadata(nextTrackPath);
                     var loadNextTask = Task.Run(
                         async () => await _ffmpegService.EncodeTrackAsync(nextTrackPath, _targetBitrate, _targetSamplerate, cancellationToken),
                         cancellationToken
@@ -97,41 +98,96 @@ namespace Pege.Streaming
         /// </summary>
         private async Task BroadcastTrackAsync(byte[] encodedData, CancellationToken cancellationToken)
         {
-            _log.Information($"Now playing: \"{CastedStatus.Track}\" by {CastedStatus.Artist}");
-            _log.Information($"Next: \"{CastedStatus.NextTrack}\" by {CastedStatus.NextArtist}");
+            _log.Information($"Now playing (AAC Frame-Aligned): \"{CastedStatus.Track}\" by {CastedStatus.Artist}");
 
+            // 1. Используем ReadOnlyMemory вместо ReadOnlySpan, чтобы безопасно пересекать границы await
+            ReadOnlyMemory<byte> totalMemory = encodedData;
             int offset = 0;
-            long totalBytes = encodedData.Length;
 
-            double bytesPerMs = _targetBitrate * 1000.0 / 8.0 / 1000.0;
+            // Константы формата AAC ADTS для 44100 Гц
+            const double SamplesPerFrame = 1024.0;
+            const double SampleRate = 44100.0;
+            const double FrameDurationMs = (SamplesPerFrame / SampleRate) * 1000.0; // ~23.219954 мс
 
-            var stopwatch = Stopwatch.StartNew();
-            long totalSent = 0;
+            // Желаемое количество целых кадров в одной порции вещания
+            // 17 кадров * 23.22мс = ~394.7 мс звука в одном чанке
+            const int FramesPerChunk = 17;
 
-            while (offset < totalBytes && !cancellationToken.IsCancellationRequested)
+            if (_isFirstTrack)
             {
-                int bytesToSend = (int)Math.Min(_chunkSize, totalBytes - offset);
+                _isFirstTrack = false;
+                _globalStreamStopwatch.Start();
+            }
 
-                // Создаем чанк без копирования данных
-                var chunkData = new Memory<byte>(encodedData, offset, bytesToSend);
-                offset += bytesToSend;
-                totalSent += bytesToSend;
+            while (offset < totalMemory.Length && !cancellationToken.IsCancellationRequested)
+            {
+                int chunkStartOffset = offset;
+                int framesPacked = 0;
 
-                // Отправляем чанк в канал
+                // Внутренний цикл нарезки (БЕЗ await внутри)
+                while (framesPacked < FramesPerChunk && offset < totalMemory.Length)
+                {
+                    if (offset + 7 > totalMemory.Length)
+                    {
+                        offset = totalMemory.Length;
+                        break;
+                    }
+
+                    // Локально создаем Span только для быстрой проверки заголовка текущего кадра
+                    ReadOnlySpan<byte> headerSpan = totalMemory.Span[offset..];
+
+                    // Проверяем синхрослово ADTS (0xFFF)
+                    if (headerSpan[0] == 0xFF && (headerSpan[1] & 0xF0) == 0xF0)
+                    {
+                        // Вытаскиваем 13-битное число длины текущего кадра из заголовка
+                        int frameLength = ((headerSpan[3] & 0x03) << 11)
+                                        | (headerSpan[4] << 3)
+                                        | ((headerSpan[5] & 0xE0) >> 5);
+
+                        // Защита от битых кадров
+                        if (frameLength < 7 || offset + frameLength > totalMemory.Length)
+                        {
+                            offset = totalMemory.Length;
+                            break;
+                        }
+
+                        // Шагаем строго на конец текущего целого кадра
+                        offset += frameLength;
+                        framesPacked++;
+                    }
+                    else
+                    {
+                        // Если потеряли синхронизацию, смещаемся по 1 байту
+                        offset++;
+                    }
+                }
+
+                int bytesToWrite = offset - chunkStartOffset;
+                if (bytesToWrite <= 0) break;
+
+                // Вычисляем РЕАЛЬНУЮ длительность этой порции звука исходя из кол-ва ЦЕЛЫХ кадров
+                double chunkDurationMs = framesPacked * FrameDurationMs;
+
+                // Безопасно нарезаем Memory, которая без проблем живет в куче
+                var chunkData = totalMemory.Slice(chunkStartOffset, bytesToWrite);
+                //_globalBytesSent += bytesToWrite;
+
                 BroadcastChunk(new AudioChunk
                 {
-                    Data = chunkData,
+                    Data = chunkData, // Передаем нашу ReadOnlyMemory<byte> напрямую
                     BitrateKbps = _targetBitrate,
-                    DurationMs = (int)(bytesToSend / bytesPerMs),
+                    DurationMs = (int)chunkDurationMs,
                     StreamMetadata = GenerateMetadataString().ToIcyMetadata()
                 });
 
-                // Синхронизация времени (чтобы не улететь вперед)
-                if (offset < totalBytes)
+                // Вот здесь происходит точка прерывания (await), 
+                // но так как у нас в теле цикла больше нет ReadOnlySpan полей, ошибка пропадет!
+                if (offset < totalMemory.Length)
                 {
-                    double expectedMs = totalSent / bytesPerMs;
-                    double actualMs = stopwatch.Elapsed.TotalMilliseconds;
-                    int sleepMs = (int)(expectedMs - actualMs);
+                    _globalStreamDurationMs += chunkDurationMs;
+
+                    double actualMs = _globalStreamStopwatch.Elapsed.TotalMilliseconds;
+                    int sleepMs = (int)(_globalStreamDurationMs - actualMs);
 
                     if (sleepMs > 0)
                     {
@@ -140,6 +196,56 @@ namespace Pege.Streaming
                 }
             }
         }
+
+        //private async Task BroadcastTrackAsync(byte[] encodedData, CancellationToken cancellationToken)
+        //{
+        //    _log.Information($"Now playing: \"{CastedStatus.Track}\" by {CastedStatus.Artist}");
+        //    _log.Information($"Next: \"{CastedStatus.NextTrack}\" by {CastedStatus.NextArtist}");
+
+        //    int offset = 0;
+        //    long totalBytes = encodedData.Length;
+
+        //    double bytesPerMs = _targetBitrate * 1000.0 / 8.0 / 1000.0;
+
+        //    if (_isFirstTrack)
+        //    {
+        //        _isFirstTrack = false;
+        //        _globalStreamStopwatch.Start();
+        //    }
+
+        //    while (offset < totalBytes && !cancellationToken.IsCancellationRequested)
+        //    {
+        //        int bytesToSend = (int)Math.Min(_chunkSize, totalBytes - offset);
+        //        var chunkData = new Memory<byte>(encodedData, offset, bytesToSend);
+        //        offset += bytesToSend;
+
+        //        // Накапливаем ВСЕ отправленные байты с момента включения сервера
+        //        _globalBytesSent += bytesToSend;
+
+        //        BroadcastChunk(new AudioChunk
+        //        {
+        //            Data = chunkData,
+        //            BitrateKbps = _targetBitrate,
+        //            DurationMs = (int)(bytesToSend / bytesPerMs),
+        //            StreamMetadata = GenerateMetadataString().ToIcyMetadata()
+        //        });
+
+        //        if (offset < totalBytes)
+        //        {
+        //            // Магия: считаем сколько ВСЕГО миллисекунд должно пройти от старта сервера
+        //            double expectedMs = _globalBytesSent / bytesPerMs;
+        //            double actualMs = _globalStreamStopwatch.Elapsed.TotalMilliseconds;
+        //            int sleepMs = (int)(expectedMs - actualMs);
+
+        //            if (sleepMs > 0)
+        //            {
+        //                await Task.Delay(sleepMs, cancellationToken);
+        //            }
+        //            // Если sleepMs отрицательный (сервер проспал), мы НЕ СПИМ вообще,
+        //            // а мгновенно выстреливаем следующий чанк, полностью уничтожая дрейф времени!
+        //        }
+        //    }
+        //}
 
         /// <summary>
         /// Метод публикации сообщения о текущем треке в Telegram-канал.
@@ -195,11 +301,15 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
         private string GenerateMetadataString() => $"StreamTitle='{CastedStatus.Artist} - {CastedStatus.Track}';NextTrack='{CastedStatus.NextArtist} - {CastedStatus.NextTrack}';";
 
         /// <summary>
-        /// Метод выбирает следующий случайный MP3-файл.
+        /// Метод выбирает следующий случайный аудиофайл.
         /// </summary>
         private string GetNextFilename()
         {
-            var allFiles = Directory.GetFiles(CastedStatus.Path!, "*.mp3");
+            var allFiles = Directory.GetFiles(CastedStatus.Path!, "*.*")
+                .Where(f => f.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase) ||
+                            f.EndsWith(".aac", StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+
             if (allFiles.Length == 0)
                 throw new InvalidOperationException(Error.NoFilesToPlay);
 
@@ -228,7 +338,10 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
         /// </summary>
         private async Task UpdateTotalTracksAndDurationAsync()
         {
-            var files = Directory.GetFiles(CastedStatus.Path!, "*.mp3", SearchOption.AllDirectories);
+            var files = Directory.GetFiles(CastedStatus.Path!, "*.*", SearchOption.AllDirectories)
+                .Where(f => f.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase) ||
+                            f.EndsWith(".aac", StringComparison.OrdinalIgnoreCase))
+                .ToArray();
 
             var totalSeconds = new ConcurrentBag<double>();
             var errors = new ConcurrentBag<string>();
@@ -317,9 +430,11 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
                             throw new ApplicationException(Error.UnableReadUploadedFileName);
                         }
 
-                        if (Path.GetExtension(currentFileName)?.ToLowerInvariant() != ".mp3")
-                            throw new ApplicationException(Error.OnlyMp3FileExtensionAvailable);
-
+                        string? fileExtension = Path.GetExtension(currentFileName)?.ToLowerInvariant();
+                        if (fileExtension != ".mp3" && fileExtension != ".aac")
+                        {
+                            throw new ApplicationException(Error.UnacceptableFileExtension);
+                        }
 
                         if (!Path.Exists(CastedStatus.Path))
                             throw new ApplicationException(Error.DirectoryDoesNotExist);
@@ -357,7 +472,7 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
                     {
                         try
                         {
-                            return ffmpegService.GetMp3Metadata(Path.Combine(CastedStatus.Path!, i.Key));
+                            return ffmpegService.GetMetadata(Path.Combine(CastedStatus.Path!, i.Key));
                         }
                         catch
                         {
@@ -420,9 +535,12 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
         /// </summary>
         private readonly List<string> _history = [];
 
+        private readonly Stopwatch _globalStreamStopwatch = new();
+        //private long _globalBytesSent = 0;
+        private double _globalStreamDurationMs = 0; // Считаем абсолютное медиа-время в мс
+        private bool _isFirstTrack = true;
         private readonly Random _random = new();
-        private readonly int _targetBitrate = 320;
+        private readonly int _targetBitrate = 160;
         private readonly int _targetSamplerate = 44100;
-        private readonly int _chunkSize = 8192;
     }
 }

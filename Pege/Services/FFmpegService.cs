@@ -23,10 +23,33 @@ namespace Pege.Services
         /// </summary>
         /// <param name="filePath">Путь к медиафайлу.</param>
         /// <returns>Кортеж с именем исполнителя и названием трека.</returns>
-        public (string artist, string aitle) GetMp3Metadata(string filePath)
+        public (string artist, string aitle) GetMetadata(string filePath)
         {
             string artist = Message.UnknownArtist;
             string title = Path.GetFileNameWithoutExtension(filePath);
+
+            if (Path.GetExtension(filePath).Equals(".aac", StringComparison.OrdinalIgnoreCase))
+            {
+                string filename = Path.GetFileNameWithoutExtension(filePath);
+
+                // Сначала отрезаем битрейт с конца (ищем последний дефис " - ")
+                int lastDashIndex = filename.LastIndexOf(" - ");
+                if (lastDashIndex != -1 && int.TryParse(filename[(lastDashIndex + 3)..], out _))
+                {
+                    filename = filename[..lastDashIndex].Trim();
+                }
+
+                // 2. Теперь разделяем Артиста и Трек (ищем первый дефис " - ")
+                int artistDashIndex = filename.IndexOf(" - ");
+                if (artistDashIndex != -1)
+                {
+                    artist = filename[..artistDashIndex].Trim();
+                    title = filename[(artistDashIndex + 3)..].Trim();
+                    return (artist, title);
+                }
+
+                return (Message.UnknownArtist, filename);
+            }
 
             try
             {
@@ -144,7 +167,25 @@ namespace Pege.Services
 
             try
             {
-                string arguments = $"-v error -select_streams a:0 -show_entries stream=bit_rate,sample_rate -of ini \"{filePath}\"";
+                // Попытка достать битрейт из имени файла (для .aac)
+                string filename = Path.GetFileNameWithoutExtension(filePath);
+                int lastDashIndex = filename.LastIndexOf(" - ");
+
+                if (lastDashIndex != -1)
+                {
+                    string potentialBitrateStr = filename[(lastDashIndex + 3)..].Trim();
+                    // Проверяем, действительно ли в конце имени файла указано число битрейта
+                    if (int.TryParse(potentialBitrateStr, out int parsedBitrate))
+                    {
+                        bitrate = parsedBitrate; // Нашли битрейт прямо в имени! (например, 160)
+                    }
+                }
+
+                // Считываем параметры через ffprobe
+                // Если битрейт уже нашли в имени, запрашиваем у ffprobe ТОЛЬКО sample_rate (это быстро)
+                // Если не нашли (для .mp3) — запрашиваем и bit_rate, и sample_rate
+                string entries = bitrate > 0 ? "stream=sample_rate" : "stream=bit_rate,sample_rate";
+                string arguments = $"-v error -select_streams a:0 -show_entries {entries} -of ini \"{filePath}\"";
 
                 using var process = new Process
                 {
@@ -153,25 +194,17 @@ namespace Pege.Services
                         FileName = _ffprobePath,
                         Arguments = arguments,
                         RedirectStandardOutput = true,
-                        RedirectStandardError = true,
                         UseShellExecute = false,
                         CreateNoWindow = true,
-                        StandardOutputEncoding = Encoding.UTF8,
-                        StandardErrorEncoding = Encoding.UTF8
+                        StandardOutputEncoding = Encoding.UTF8
                     }
                 };
 
                 var outputBuilder = new StringBuilder();
-
-                process.OutputDataReceived += (sender, e) =>
-                {
-                    if (!string.IsNullOrEmpty(e.Data))
-                        outputBuilder.AppendLine(e.Data);
-                };
+                process.OutputDataReceived += (sender, e) => { if (!string.IsNullOrEmpty(e.Data)) outputBuilder.AppendLine(e.Data); };
 
                 process.Start();
                 process.BeginOutputReadLine();
-
                 await process.WaitForExitAsync(cancellationToken);
 
                 string output = outputBuilder.ToString().Trim();
@@ -187,8 +220,11 @@ namespace Pege.Services
 
                     if (key.Equals("sample_rate", StringComparison.OrdinalIgnoreCase))
                         _ = int.TryParse(value, out samplerate);
-                    else if (key.Equals("bit_rate", StringComparison.OrdinalIgnoreCase))
-                        _ = int.TryParse(value, out bitrate);
+                    else if (key.Equals("bit_rate", StringComparison.OrdinalIgnoreCase) && bitrate == 0)
+                    {
+                        if (int.TryParse(value, out int rawBitrate))
+                            bitrate = rawBitrate / 1000; // Для MP3 переводим в кбит/с
+                    }
                 }
             }
             catch (Exception ex)
@@ -196,11 +232,72 @@ namespace Pege.Services
                 Log?.Error(string.Format(Error.AudioRateReadingError, filePath, ex.Message));
             }
 
-            return (bitrate / 1000, samplerate);
+            return (bitrate, samplerate);
         }
+        //public async Task<(int bitrate, int samplerate)> GetAudioRateAsync(string filePath, CancellationToken cancellationToken)
+        //{
+        //    int bitrate = 0;
+        //    int samplerate = 0;
+
+        //    try
+        //    {
+        //        string arguments = $"-v error -select_streams a:0 -show_entries stream=bit_rate,sample_rate -of ini \"{filePath}\"";
+
+        //        using var process = new Process
+        //        {
+        //            StartInfo = new ProcessStartInfo
+        //            {
+        //                FileName = _ffprobePath,
+        //                Arguments = arguments,
+        //                RedirectStandardOutput = true,
+        //                RedirectStandardError = true,
+        //                UseShellExecute = false,
+        //                CreateNoWindow = true,
+        //                StandardOutputEncoding = Encoding.UTF8,
+        //                StandardErrorEncoding = Encoding.UTF8
+        //            }
+        //        };
+
+        //        var outputBuilder = new StringBuilder();
+
+        //        process.OutputDataReceived += (sender, e) =>
+        //        {
+        //            if (!string.IsNullOrEmpty(e.Data))
+        //                outputBuilder.AppendLine(e.Data);
+        //        };
+
+        //        process.Start();
+        //        process.BeginOutputReadLine();
+
+        //        await process.WaitForExitAsync(cancellationToken);
+
+        //        string output = outputBuilder.ToString().Trim();
+        //        var lines = output.Split(["\r\n", "\r", "\n"], StringSplitOptions.RemoveEmptyEntries);
+
+        //        foreach (var line in lines)
+        //        {
+        //            int separatorIndex = line.IndexOf('=');
+        //            if (separatorIndex == -1) continue;
+
+        //            string key = line[..separatorIndex].Trim();
+        //            string value = line[(separatorIndex + 1)..].Trim();
+
+        //            if (key.Equals("sample_rate", StringComparison.OrdinalIgnoreCase))
+        //                _ = int.TryParse(value, out samplerate);
+        //            else if (key.Equals("bit_rate", StringComparison.OrdinalIgnoreCase))
+        //                _ = int.TryParse(value, out bitrate);
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Log?.Error(string.Format(Error.AudioRateReadingError, filePath, ex.Message));
+        //    }
+
+        //    return (bitrate / 1000, samplerate);
+        //}
 
         /// <summary>
-        /// Метод перекодирует MP3 в заданный битрейт и частоту дискретизации.
+        /// Метод перекодирует медиафайл в заданный битрейт и частоту дискретизации.
         /// </summary>
         /// <remarks>Метод перезаписывает исходный файл. Если рейты исходного файла совпадают с требуемыми, перезаписи фала не происходит.</remarks>
         /// <param name="filePath">путь к файлу</param>
@@ -217,25 +314,25 @@ namespace Pege.Services
             }
 
             (var originalBitrate, var origSamplerate) = await GetAudioRateAsync(filePath, cancellationToken);
-            if (originalBitrate == targetBitrate && origSamplerate == targetSamplerate)
+
+            // Проверяем, не является ли файл уже готовым AAC с нужными параметрами
+            bool isAac = Path.GetExtension(filePath).Equals(".aac", StringComparison.OrdinalIgnoreCase);
+            if (isAac && originalBitrate == targetBitrate && origSamplerate == targetSamplerate)
             {
                 Log?.Information($"{Message.NoEncodingNeeded} {string.Format(Message.UsingOriginalFile, filePath)}");
                 return await File.ReadAllBytesAsync(filePath, cancellationToken);
             }
 
             Log?.Information(string.Format(Message.Encoding, filePath, targetBitrate, targetSamplerate));
-            string tempOutput = Path.Combine(Path.GetTempPath(), $"output_{Guid.NewGuid()}.mp3");
+
+            string tempOutput = Path.Combine(Path.GetTempPath(), $"output_{Guid.NewGuid()}.aac");
 
             try
             {
-                // Формируем аргументы FFmpeg
-                // -i: входной файл
-                // -b:a 320k: аудиобитрейт 320 kbps
-                // -ar 44100: частота дискретизации 44.1 kHz
-                // -ac 2: стерео (2 канала)
-                // -map 0:a: берем только аудиодорожку
-                // -y: перезаписывать выходной файл
-                string arguments = $"-i \"{filePath}\" -b:a {targetBitrate}k -ar {targetSamplerate} -ac 2 -map 0:a -y \"{tempOutput}\"";
+                // Аргументы под AAC ADTS:
+                // -c:a aac : используем нативный кодек AAC
+                // -f adts  : упаковываем в потоковый контейнер ADTS (аналог стрима MP3 для радио)
+                string arguments = $"-i \"{filePath}\" -c:a aac -b:a {targetBitrate}k -ar {targetSamplerate} -ac 2 -map 0:a -f adts -y \"{tempOutput}\"";
 
                 using var process = new Process
                 {
@@ -253,14 +350,7 @@ namespace Pege.Services
                 };
 
                 var errorBuilder = new StringBuilder();
-
-                process.ErrorDataReceived += (sender, e) =>
-                {
-                    if (!string.IsNullOrEmpty(e.Data))
-                    {
-                        errorBuilder.AppendLine(e.Data);
-                    }
-                };
+                process.ErrorDataReceived += (sender, e) => { if (!string.IsNullOrEmpty(e.Data)) errorBuilder.AppendLine(e.Data); };
 
                 try
                 {
@@ -270,55 +360,193 @@ namespace Pege.Services
                 }
                 finally
                 {
-                    try
-                    {
-                        if (!process.HasExited) process.Kill(entireProcessTree: true);
-                    }
-                    catch { }
+                    try { if (!process.HasExited) process.Kill(entireProcessTree: true); } catch { }
                 }
 
-                if (process.ExitCode != 0)
-                {
-                    string error = errorBuilder.ToString();
-                    throw new Exception(error);
-                }
-
-                if (!File.Exists(tempOutput))
-                    throw new Exception(string.Format(Error.FFmpegOutputError, filePath));
+                if (process.ExitCode != 0) throw new Exception(errorBuilder.ToString());
+                if (!File.Exists(tempOutput)) throw new Exception(string.Format(Error.FFmpegOutputError, filePath));
 
                 byte[] encodedData = await File.ReadAllBytesAsync(tempOutput, cancellationToken);
+                if (encodedData.Length == 0) throw new Exception(string.Format(Error.FFmpegOutputError, filePath));
 
-                if (encodedData.Length == 0)
-                    throw new Exception(string.Format(Error.FFmpegOutputError, filePath));
+                string targetPath = filePath;
 
                 lock (_lockManager.GetLock(filePath))
                 {
-                    File.Copy(tempOutput, filePath, true);
+                    // Если мы впервые кодируем MP3 в AAC, создаем новое "говорящее" имя файла
+                    if (!isAac)
+                    {
+                        try
+                        {
+                            // Читаем теги из MP3, пока он жив
+                            (string artist, string title) = GetMetadata(filePath);
+
+                            // Безопасная очистка имени от запрещенных символов файловой системы
+                            string safeArtist = string.Concat(artist.Split(Path.GetInvalidFileNameChars()));
+                            string safeTitle = string.Concat(title.Split(Path.GetInvalidFileNameChars()));
+
+                            string directory = Path.GetDirectoryName(filePath) ?? "";
+
+                            // Формируем имя: Папка/Исполнитель - Название - 160.aac
+                            targetPath = Path.Combine(directory, $"{safeArtist} - {safeTitle} - {targetBitrate}.aac");
+                        }
+                        catch
+                        {
+                            // Резервный вариант, если теги прочитать не удалось вовсе
+                            string directory = Path.GetDirectoryName(filePath) ?? "";
+                            string nameWithoutExt = Path.GetFileNameWithoutExtension(filePath);
+                            targetPath = Path.Combine(directory, $"{nameWithoutExt} - {targetBitrate}.aac");
+                        }
+                    }
+                    else
+                    {
+                        // Если файл уже был .aac, но мы почему-то решили его переписать (например, изменился битрейт в конфиге)
+                        // Нам нужно обновить цифру битрейта в его имени, если она там старая
+                        string directory = Path.GetDirectoryName(filePath) ?? "";
+                        string filename = Path.GetFileNameWithoutExtension(filePath);
+                        int lastDashIndex = filename.LastIndexOf(" - ");
+
+                        if (lastDashIndex != -1 && int.TryParse(filename[(lastDashIndex + 3)..], out _))
+                        {
+                            string baseName = filename[..lastDashIndex];
+                            targetPath = Path.Combine(directory, $"{baseName} - {targetBitrate}.aac");
+                        }
+                    }
+
+                    // Копируем временный файл в целевой путь
+                    File.Copy(tempOutput, targetPath, true);
+
+                    // Если мы создали новый .aac файл вместо старого .mp3 — удаляем старый .mp3
+                    if (!targetPath.Equals(filePath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        try { File.Delete(filePath); } catch { }
+                    }
                 }
 
                 return encodedData;
             }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
+            catch (OperationCanceledException) { throw; }
             catch (Exception ex)
             {
-                Log?.Warning($"{ex.Message}\\n{Message.UsingOriginalFile}");
+                Log?.Warning($"{ex.Message}\n{Message.UsingOriginalFile}");
                 return await File.ReadAllBytesAsync(filePath, cancellationToken);
             }
             finally
             {
-                try
-                {
-                    if (File.Exists(tempOutput)) File.Delete(tempOutput);
-                }
-                catch (Exception ex)
-                {
-                    Log?.Warning(string.Format(Error.TempFilesDeleteError, ex.Message));
-                }
+                try { if (File.Exists(tempOutput)) File.Delete(tempOutput); } catch (Exception ex) { Log?.Warning(string.Format(Error.TempFilesDeleteError, ex.Message)); }
             }
         }
+        //public async Task<byte[]> EncodeTrackAsync(string filePath, int targetBitrate, int targetSamplerate, CancellationToken cancellationToken)
+        //{
+        //    if (!IsFFmpegAvailable() || !IsFFprobeAvailable())
+        //    {
+        //        Log?.Warning($"{Error.FFmpegNotAvailable} {string.Format(Message.UsingOriginalFile, filePath)}");
+        //        return await File.ReadAllBytesAsync(filePath, cancellationToken);
+        //    }
+
+        //    (var originalBitrate, var origSamplerate) = await GetAudioRateAsync(filePath, cancellationToken);
+        //    if (originalBitrate == targetBitrate && origSamplerate == targetSamplerate)
+        //    {
+        //        Log?.Information($"{Message.NoEncodingNeeded} {string.Format(Message.UsingOriginalFile, filePath)}");
+        //        return await File.ReadAllBytesAsync(filePath, cancellationToken);
+        //    }
+
+        //    Log?.Information(string.Format(Message.Encoding, filePath, targetBitrate, targetSamplerate));
+        //    string tempOutput = Path.Combine(Path.GetTempPath(), $"output_{Guid.NewGuid()}.mp3");
+
+        //    try
+        //    {
+        //        // Формируем аргументы FFmpeg
+        //        // -i: входной файл
+        //        // -b:a 320k: аудиобитрейт 320 kbps
+        //        // -ar 44100: частота дискретизации 44.1 kHz
+        //        // -ac 2: стерео (2 канала)
+        //        // -map 0:a: берем только аудиодорожку
+        //        // -y: перезаписывать выходной файл
+        //        string arguments = $"-i \"{filePath}\" -b:a {targetBitrate}k -ar {targetSamplerate} -ac 2 -map 0:a -y \"{tempOutput}\"";
+
+        //        using var process = new Process
+        //        {
+        //            StartInfo = new ProcessStartInfo
+        //            {
+        //                FileName = _ffmpegPath,
+        //                Arguments = arguments,
+        //                RedirectStandardOutput = true,
+        //                RedirectStandardError = true,
+        //                UseShellExecute = false,
+        //                CreateNoWindow = true,
+        //                StandardOutputEncoding = Encoding.UTF8,
+        //                StandardErrorEncoding = Encoding.UTF8
+        //            }
+        //        };
+
+        //        var errorBuilder = new StringBuilder();
+
+        //        process.ErrorDataReceived += (sender, e) =>
+        //        {
+        //            if (!string.IsNullOrEmpty(e.Data))
+        //            {
+        //                errorBuilder.AppendLine(e.Data);
+        //            }
+        //        };
+
+        //        try
+        //        {
+        //            process.Start();
+        //            process.BeginErrorReadLine();
+        //            await process.WaitForExitAsync(cancellationToken);
+        //        }
+        //        finally
+        //        {
+        //            try
+        //            {
+        //                if (!process.HasExited) process.Kill(entireProcessTree: true);
+        //            }
+        //            catch { }
+        //        }
+
+        //        if (process.ExitCode != 0)
+        //        {
+        //            string error = errorBuilder.ToString();
+        //            throw new Exception(error);
+        //        }
+
+        //        if (!File.Exists(tempOutput))
+        //            throw new Exception(string.Format(Error.FFmpegOutputError, filePath));
+
+        //        byte[] encodedData = await File.ReadAllBytesAsync(tempOutput, cancellationToken);
+
+        //        if (encodedData.Length == 0)
+        //            throw new Exception(string.Format(Error.FFmpegOutputError, filePath));
+
+        //        lock (_lockManager.GetLock(filePath))
+        //        {
+        //            File.Copy(tempOutput, filePath, true);
+        //        }
+
+        //        return encodedData;
+        //    }
+        //    catch (OperationCanceledException)
+        //    {
+        //        throw;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Log?.Warning($"{ex.Message}\\n{Message.UsingOriginalFile}");
+        //        return await File.ReadAllBytesAsync(filePath, cancellationToken);
+        //    }
+        //    finally
+        //    {
+        //        try
+        //        {
+        //            if (File.Exists(tempOutput)) File.Delete(tempOutput);
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            Log?.Warning(string.Format(Error.TempFilesDeleteError, ex.Message));
+        //        }
+        //    }
+        //}
 
         /// <summary>
         /// Метод проверки доступности утилиты FFmpeg.

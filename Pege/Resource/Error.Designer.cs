@@ -252,15 +252,6 @@ namespace Pege.Resource {
         }
         
         /// <summary>
-        ///   Ищет локализованную строку, похожую на File has an invalid extension. Only mp3 is allowed..
-        /// </summary>
-        internal static string OnlyMp3FileExtensionAvailable {
-            get {
-                return ResourceManager.GetString("OnlyMp3FileExtensionAvailable", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Ищет локализованную строку, похожую на A path is required for file streams..
         /// </summary>
         internal static string PathIsRequired {
@@ -428,6 +419,15 @@ namespace Pege.Resource {
         internal static string UnableReadUploadedFileName {
             get {
                 return ResourceManager.GetString("UnableReadUploadedFileName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Ищет локализованную строку, похожую на File has an invalid extension. Only .mp3 or .acc is allowed..
+        /// </summary>
+        internal static string UnacceptableFileExtension {
+            get {
+                return ResourceManager.GetString("UnacceptableFileExtension", resourceCulture);
             }
         }
         

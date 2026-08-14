@@ -4,6 +4,7 @@ using Pege.Data;
 using Pege.Entities;
 using Pege.Interfaces;
 using Serilog;
+using System.Diagnostics;
 using System.Threading.Channels;
 
 namespace Pege.Streaming
@@ -87,8 +88,23 @@ namespace Pege.Streaming
             _log.Information($"Consumers: {_consumers.Count}");
         }
 
+        private long _lastAacTicks = 0;
+
         protected void BroadcastChunk(Chunk chunk)
         {
+            //long currentTicks = Stopwatch.GetTimestamp();
+            //if (_lastAacTicks != 0)
+            //{
+            //    double elapsedMs = (currentTicks - _lastAacTicks) * 1000.0 / Stopwatch.Frequency;
+
+            //    // Если интервал между чанками прыгает выше 550 мс (при норме 410 мс)
+            //    if (elapsedMs > 180)
+            //    {
+            //        _log.Warning($"[STREAM_LAG] Chunk generated with delay: {elapsedMs:F1}ms");
+            //    }
+            //}
+            //_lastAacTicks = currentTicks;
+
             lock (_lock)
             {
                 if (_consumers.Count == 0) return;

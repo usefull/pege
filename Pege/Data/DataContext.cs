@@ -44,8 +44,8 @@ namespace Pege.Data
                     Id = "_",
                     Title = "o0o0.online",
                     Country = "Russia",
-                    ImplType = "RandomMp3AudioStream",
-                    Path = "mp3",
+                    ImplType = "RandomFileAudioStream",
+                    Path = "audio",
                     Registered = DateTime.Parse("2026-01-01T00:00:00Z", null, System.Globalization.DateTimeStyles.AdjustToUniversal),
                     TelegramChannelId = "-1004378303357"
                 }

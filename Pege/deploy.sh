@@ -63,7 +63,7 @@ ssh "$VPS_USER@$VPS_IP" TG_BOT_TOKEN="$TG_BOT_TOKEN" CONTAINER_NAME="$CONTAINER_
     
     # Подготовка папок в каталоге /root
     mkdir -p /root/storage
-    mkdir -p /root/mp3
+    mkdir -p /root/audio
     
     # Создаем и заполняем .env файл, если его нет
     if [ ! -f /root/storage/pege.env ]; then
@@ -97,7 +97,7 @@ ssh "$VPS_USER@$VPS_IP" TG_BOT_TOKEN="$TG_BOT_TOKEN" CONTAINER_NAME="$CONTAINER_
         --log-opt max-size=10m \
         --log-opt max-file=3 \
         --mount "type=bind,source=/root/storage,target=/app/storage,bind-propagation=shared" \
-        --mount "type=bind,source=/root/mp3,target=/app/mp3,bind-propagation=shared" \
+        --mount "type=bind,source=/root/audio,target=/app/mp3,bind-propagation=shared" \
         --env-file /root/storage/pege.env \
         ${IMAGE_NAME}:latest
 
