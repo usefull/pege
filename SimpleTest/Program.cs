@@ -11,7 +11,7 @@ var consumerStep = 50;
 var interval = 10;
 
 // Максимальное кол-во потребителей.
-var limit = 600;
+var limit = 550;
 
 // Продолжительность теста в минутах при максимуме потребителей.
 var limitDuration = 2880;
