@@ -51,7 +51,10 @@ namespace Pege.Streaming
                 // Загружаем первый трек
                 string currentTrackPath = GetNextFilename();
                 (CastedStatus.Artist, CastedStatus.Track) = _ffmpegService.GetMetadata(currentTrackPath);
-                byte[] currentTrackData = await _ffmpegService.EncodeTrackAsync(currentTrackPath, _targetBitrate, _targetSamplerate, cancellationToken);                
+                byte[] currentTrackData = await _ffmpegService.EncodeTrackAsync(currentTrackPath, _targetBitrate, _targetSamplerate, cancellationToken);
+
+                if(!string.IsNullOrWhiteSpace(_ffmpegService.NewFilePath))
+                    _history.Add(_ffmpegService.NewFilePath);
 
                 while (true)
                 {
@@ -73,6 +76,9 @@ namespace Pege.Streaming
 
                     // Ждем загрузки следующего трека
                     currentTrackData = await loadNextTask;
+
+                    if (!string.IsNullOrWhiteSpace(_ffmpegService.NewFilePath))
+                        _history.Add(_ffmpegService.NewFilePath);
 
                     CastedStatus.Artist = CastedStatus.NextArtist;
                     CastedStatus.Track = CastedStatus.NextTrack;

@@ -72,6 +72,17 @@ namespace Pege.Data
                     Registered = DateTime.Parse("2026-01-01T00:00:00Z", null, System.Globalization.DateTimeStyles.AdjustToUniversal)
                 }
             );
+            modelBuilder.Entity<RelayAudioStreamInfo>().HasData(
+                new RelayAudioStreamInfo
+                {
+                    Id = "r",
+                    Title = "Radio Record - Russian Gold",
+                    Country = "Russia",
+                    ImplType = "RelayAudioStream",
+                    Uri = "https://radiorecord.hostingradio.ru/russiangold96.aacp",
+                    Registered = DateTime.Parse("2026-01-01T00:00:00Z", null, System.Globalization.DateTimeStyles.AdjustToUniversal)
+                }
+            );
 
             base.OnModelCreating(modelBuilder);
         }
