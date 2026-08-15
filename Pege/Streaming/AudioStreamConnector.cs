@@ -1,7 +1,7 @@
-﻿
-using Pege.Entities;
+﻿using Pege.Entities;
 using Pege.Interfaces;
 using Serilog;
+using System.Diagnostics;
 using System.Text;
 
 namespace Pege.Streaming
@@ -46,21 +46,31 @@ namespace Pege.Streaming
 
             var (reader, sessionId) = stream.Subscribe();
 
+            int bytesSentInCurrentInterval = 0;
+            byte[]? currentMetadata = null;
+
             try
             {
                 await httpResponse.Body.FlushAsync(cancellationToken);
 
-                int bytesSentInCurrentInterval = 0;
-                byte[]? currentMetadata = null;
+                var netStopwatch = new Stopwatch();
 
                 await foreach (var chunk in reader.ReadAllAsync(cancellationToken).Cast<AudioChunk>())
                 {
                     byte[]? pendingMetadata = chunk.StreamMetadata;
-
                     if (!supportIcy)
                     {
+                        netStopwatch.Restart();
+
                         await httpResponse.Body.WriteAsync(chunk.Data, cancellationToken);
-                        await httpResponse.Body.FlushAsync(cancellationToken);
+
+                        netStopwatch.Stop();
+
+                        if (netStopwatch.ElapsedMilliseconds > 500)
+                        {
+                            _log.Warning($"[NET_BLOCK] Client {sessionId} (No-ICY) write blocked for {netStopwatch.ElapsedMilliseconds}ms");
+                        }
+
                         continue;
                     }
 
@@ -68,26 +78,22 @@ namespace Pege.Streaming
 
                     while (audioData.Length > 0)
                     {
-                        // Сколько байт аудио осталось отправить до следующей точки врезки метаданных
                         int bytesLeftInInterval = IcyMetaInterval - bytesSentInCurrentInterval;
                         int bytesToWrite = Math.Min(audioData.Length, bytesLeftInInterval);
 
-                        // Отправляем порцию аудио
+                        netStopwatch.Restart();
+
                         await httpResponse.Body.WriteAsync(audioData[..bytesToWrite], cancellationToken);
 
                         if (bytesSentInCurrentInterval + bytesToWrite == IcyMetaInterval)
                         {
-                            // Мы дошли до точки врезки
-                            // Проверяем, изменились ли метаданные (название трека) по сравнению с прошлым разом
                             if (pendingMetadata != null && !pendingMetadata.AsSpan().SequenceEqual(currentMetadata ?? ReadOnlySpan<byte>.Empty))
                             {
                                 currentMetadata = pendingMetadata;
-                                // Врезаем новые метаданные в поток
                                 await httpResponse.Body.WriteAsync(currentMetadata, cancellationToken);
                             }
                             else
                             {
-                                // Метаданные не изменились — шлем пустой блок (1 байт 0x00)
                                 await httpResponse.Body.WriteAsync(EmptyMetaBlock, cancellationToken);
                             }
 
@@ -99,9 +105,16 @@ namespace Pege.Streaming
                             bytesSentInCurrentInterval += bytesToWrite;
                             audioData = audioData[bytesToWrite..];
                         }
+
+                        netStopwatch.Stop();
+
+                        if (netStopwatch.ElapsedMilliseconds > 500)
+                        {
+                            _log.Warning($"[NET_BLOCK] Client {sessionId} (ICY) write blocked for {netStopwatch.ElapsedMilliseconds}ms");
+                        }
                     }
 
-                    await httpResponse.Body.FlushAsync(cancellationToken);
+                    //await httpResponse.Body.FlushAsync(cancellationToken);
                 }
             }
             catch (Exception ex) when (ex is OperationCanceledException or IOException) { }

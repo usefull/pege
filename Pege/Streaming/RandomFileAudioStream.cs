@@ -69,7 +69,7 @@ namespace Pege.Streaming
                     );
 
                     //Публикуем пост в Tg-канале
-                    await SendCurrentTrackInfoToTgChannel();
+                    _ = SendCurrentTrackInfoToTgChannel();
 
                     // Отправляем текущий трек клиентам
                     await BroadcastTrackAsync(currentTrackData, cancellationToken);
@@ -170,23 +170,18 @@ namespace Pege.Streaming
                 int bytesToWrite = offset - chunkStartOffset;
                 if (bytesToWrite <= 0) break;
 
-                // Вычисляем РЕАЛЬНУЮ длительность этой порции звука исходя из кол-ва ЦЕЛЫХ кадров
                 double chunkDurationMs = framesPacked * FrameDurationMs;
 
-                // Безопасно нарезаем Memory, которая без проблем живет в куче
                 var chunkData = totalMemory.Slice(chunkStartOffset, bytesToWrite);
-                //_globalBytesSent += bytesToWrite;
 
                 BroadcastChunk(new AudioChunk
                 {
-                    Data = chunkData, // Передаем нашу ReadOnlyMemory<byte> напрямую
+                    Data = chunkData,
                     BitrateKbps = _targetBitrate,
                     DurationMs = (int)chunkDurationMs,
                     StreamMetadata = GenerateMetadataString().ToIcyMetadata()
                 });
 
-                // Вот здесь происходит точка прерывания (await), 
-                // но так как у нас в теле цикла больше нет ReadOnlySpan полей, ошибка пропадет!
                 if (offset < totalMemory.Length)
                 {
                     _globalStreamDurationMs += chunkDurationMs;

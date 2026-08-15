@@ -1,5 +1,4 @@
-﻿
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Pege.Data;
 using Pege.Entities;
 using Pege.Interfaces;
@@ -24,7 +23,14 @@ namespace Pege.Streaming
             Status.Stopped = null;
         }
 
-        public StreamStatus Status { get; protected set; } = status;
+        public StreamStatus Status
+        {
+            get
+            {
+                _status.Consumers = _consumers.Count;
+                return _status;
+            }
+        }
 
         public TStatus CastedStatus => Status as TStatus ?? throw new InvalidCastException();
 
@@ -68,8 +74,6 @@ namespace Pege.Streaming
                 _consumers.Add(session);
             }
 
-            _log.Information($"Consumers: {_consumers.Count}");
-
             return (channel.Reader, sessionId);
         }
 
@@ -84,27 +88,25 @@ namespace Pege.Streaming
                     _consumers.Remove(session);
                 }
             }
-            _log.Information($"Consumers: {_consumers.Count}");
         }
-
-        private long _lastAacTicks = 0;
 
         protected void BroadcastChunk(Chunk chunk)
         {
             lock (_lock)
             {
-                if (_consumers.Count == 0) return;
-
-                foreach (var consumer in _consumers)
-                    consumer.Writer.TryWrite(chunk);
+                if (_consumers.Count > 0)
+                {
+                    foreach (var consumer in _consumers)
+                        consumer.Writer.TryWrite(chunk);
+                }
             }
         }
 
         private async Task SetStreamStopped(string id)
-        {            
+        {
             using var db = _serviceProvider.GetService<IDbContextFactory<DataContext>>()?.CreateDbContext();
             if (db == null) return;
-            
+
             var now = DateTime.UtcNow;
             await db.Streams.Where(si => si.Id == id.ToLower().Trim())
                 .ExecuteUpdateAsync(s => s.SetProperty(si => si.Stopped, si => now));
@@ -127,5 +129,6 @@ namespace Pege.Streaming
         private readonly CancellationTokenSource _cts = new();
         private readonly List<ConsumerSession> _consumers = [];
         private readonly Lock _lock = new();
+        private readonly StreamStatus _status = status;
     }
 }

@@ -20,23 +20,15 @@ namespace Pege.Test.Core
         public event EventHandler<ConsumerDataDelayEventArgs>? DataDelay;
         public event EventHandler<ConsumerErrorEventArgs>? ConnectionFailed;
 
-        public ConsumerPretender(int id, string streamUrl, TimeSpan? initialDelay = null)
+        public ConsumerPretender(int id, string streamUrl, HttpClient httpClient, TimeSpan? initialDelay = null)
         {
             if (string.IsNullOrWhiteSpace(streamUrl))
                 throw new ArgumentException("URL потока не может быть пустым", nameof(streamUrl));
 
+            _httpClient = httpClient;
             _id = id;
             _streamUrl = streamUrl;
             _initialDelay = initialDelay ?? TimeSpan.FromMilliseconds(500);
-            var handler = new SocketsHttpHandler
-            {
-                MaxConnectionsPerServer = int.MaxValue,
-                PooledConnectionLifetime = TimeSpan.FromMinutes(5)
-            };
-            _httpClient = new HttpClient(handler)
-            {
-                Timeout = Timeout.InfiniteTimeSpan
-            };
             _cts = new CancellationTokenSource();
             _connectionLock = new SemaphoreSlim(1, 1);
 
@@ -81,7 +73,8 @@ namespace Pege.Test.Core
                 await OnConnectionEstablishedAsync();
 
                 using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-                var buffer = new byte[8192];
+                //var buffer = new byte[8192];
+                var buffer = new byte[32768];
                 int bytesRead;
 
                 var stopwatch = new Stopwatch();
@@ -166,7 +159,6 @@ namespace Pege.Test.Core
 
             _cts.Cancel();
 
-            _httpClient.Dispose();
             _connectionLock.Dispose();
         }
     }

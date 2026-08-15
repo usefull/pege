@@ -50,6 +50,11 @@ namespace Pege.Entities
         public DateTime? Registered { get; set; }
 
         /// <summary>
+        /// Кол-во потребителей в настоящий момент.
+        /// </summary>
+        public int Consumers { get; set; }
+
+        /// <summary>
         /// Название Telegram-канала, в который стрим сможет отправлять сообщения.
         /// </summary>
         [JsonIgnore]
