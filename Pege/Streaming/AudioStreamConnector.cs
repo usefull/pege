@@ -2,10 +2,7 @@
 using Pege.Entities;
 using Pege.Interfaces;
 using Serilog;
-using System.Diagnostics;
-using System.Net.NetworkInformation;
 using System.Text;
-using Telegram.Bot.Requests.Abstractions;
 
 namespace Pege.Streaming
 {
@@ -27,7 +24,7 @@ namespace Pege.Streaming
         public async Task ConsumeAsync(IStream stream, HttpRequest httpRequest, HttpResponse httpResponse, CancellationToken cancellationToken)
         {
             bool supportIcy = httpRequest.Headers.ContainsKey("Icy-MetaData")
-                           && httpRequest.Headers["Icy-MetaData"] == "1";
+               && httpRequest.Headers["Icy-MetaData"] == "1";
 
             string userAgent = httpRequest.Headers.UserAgent.ToString() ?? "";
             bool isBrowser = userAgent.Contains("Mozilla") ||
@@ -35,22 +32,9 @@ namespace Pege.Streaming
                              userAgent.Contains("Safari") ||
                              userAgent.Contains("Edge");
 
-            //httpRequest.HttpContext.Response.Headers.Remove("Transfer-Encoding");
-
             httpResponse.ContentType = stream.Status.ContentType;
-            //httpResponse.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
             httpResponse.Headers.Append("Cache-Control", "no-cache, no-store");
-            //httpResponse.Headers.Append("Pragma", "no-cache");
-            httpResponse.Headers.Append("Connection", "Close");
-            //httpResponse.Headers.Append("X-Content-Type-Options", "nosniff");
             httpResponse.Headers.Append("Access-Control-Expose-Headers", "icy-metaint, icy-pub, icy-name");
-
-            httpResponse.Headers["icy-genre"] = "Mixed";
-            httpResponse.Headers["icy-description"] = "A sync-driven custom radio streaming server";
-            httpResponse.Headers["Server"] = "Icecast 2.4.0-kh10";
-            httpResponse.Headers["Access-Control-Allow-Origin"] = "*";
-            httpResponse.Headers["Access-Control-Allow-Methods"] = "GET, OPTIONS, HEAD";
-            httpResponse.Headers["Access-Control-Allow-Headers"] = "Origin, Accept, X-Requested-With, Content-Type";
 
             httpResponse.Headers.Append("icy-name", isBrowser
                 ? Uri.EscapeDataString($"{stream.Status.Title} ||| {stream.Status.Country}")
@@ -73,7 +57,6 @@ namespace Pege.Streaming
                 {
                     byte[]? pendingMetadata = chunk.StreamMetadata;
 
-                    // --- ВЕТКА А: Плеер НЕ поддерживает метаданные ---
                     if (!supportIcy)
                     {
                         await httpResponse.Body.WriteAsync(chunk.Data, cancellationToken);
@@ -81,7 +64,6 @@ namespace Pege.Streaming
                         continue;
                     }
 
-                    // --- ВЕТКА Б: Плеер ПОДДЕРЖИВАЕТ метаданные ---
                     ReadOnlyMemory<byte> audioData = chunk.Data;
 
                     while (audioData.Length > 0)
@@ -95,7 +77,7 @@ namespace Pege.Streaming
 
                         if (bytesSentInCurrentInterval + bytesToWrite == IcyMetaInterval)
                         {
-                            // Мы дошли до точки врезки! 
+                            // Мы дошли до точки врезки
                             // Проверяем, изменились ли метаданные (название трека) по сравнению с прошлым разом
                             if (pendingMetadata != null && !pendingMetadata.AsSpan().SequenceEqual(currentMetadata ?? ReadOnlySpan<byte>.Empty))
                             {
@@ -119,7 +101,6 @@ namespace Pege.Streaming
                         }
                     }
 
-                    // Плавный выталкиватель пакетов в конце каждого чанка
                     await httpResponse.Body.FlushAsync(cancellationToken);
                 }
             }

@@ -27,7 +27,7 @@ namespace Pege.Streaming
         public RandomFileAudioStream(FileAudioStreamStatus status, IServiceProvider serviceProvider) : base(status, serviceProvider)
         {
             CastedStatus.Path = status.Path;
-            Status.ContentType = "audio/acc";
+            Status.ContentType = "audio/aac";
 
             if (!Path.Exists(CastedStatus.Path))
                 throw new ApplicationException(string.Format(Error.DirectoryDoesNotExist, CastedStatus.Path));
@@ -51,8 +51,7 @@ namespace Pege.Streaming
                 // Загружаем первый трек
                 string currentTrackPath = GetNextFilename();
                 (CastedStatus.Artist, CastedStatus.Track) = _ffmpegService.GetMetadata(currentTrackPath);
-                byte[] currentTrackData = await _ffmpegService.EncodeTrackAsync(currentTrackPath, _targetBitrate, _targetSamplerate, cancellationToken);
-                
+                byte[] currentTrackData = await _ffmpegService.EncodeTrackAsync(currentTrackPath, _targetBitrate, _targetSamplerate, cancellationToken);                
 
                 while (true)
                 {
@@ -98,7 +97,7 @@ namespace Pege.Streaming
         /// </summary>
         private async Task BroadcastTrackAsync(byte[] encodedData, CancellationToken cancellationToken)
         {
-            _log.Information($"Now playing (AAC Frame-Aligned): \"{CastedStatus.Track}\" by {CastedStatus.Artist}");
+            _log.Information($"Now playing: \"{CastedStatus.Track}\" by {CastedStatus.Artist}");
 
             // 1. Используем ReadOnlyMemory вместо ReadOnlySpan, чтобы безопасно пересекать границы await
             ReadOnlyMemory<byte> totalMemory = encodedData;
@@ -196,56 +195,6 @@ namespace Pege.Streaming
                 }
             }
         }
-
-        //private async Task BroadcastTrackAsync(byte[] encodedData, CancellationToken cancellationToken)
-        //{
-        //    _log.Information($"Now playing: \"{CastedStatus.Track}\" by {CastedStatus.Artist}");
-        //    _log.Information($"Next: \"{CastedStatus.NextTrack}\" by {CastedStatus.NextArtist}");
-
-        //    int offset = 0;
-        //    long totalBytes = encodedData.Length;
-
-        //    double bytesPerMs = _targetBitrate * 1000.0 / 8.0 / 1000.0;
-
-        //    if (_isFirstTrack)
-        //    {
-        //        _isFirstTrack = false;
-        //        _globalStreamStopwatch.Start();
-        //    }
-
-        //    while (offset < totalBytes && !cancellationToken.IsCancellationRequested)
-        //    {
-        //        int bytesToSend = (int)Math.Min(_chunkSize, totalBytes - offset);
-        //        var chunkData = new Memory<byte>(encodedData, offset, bytesToSend);
-        //        offset += bytesToSend;
-
-        //        // Накапливаем ВСЕ отправленные байты с момента включения сервера
-        //        _globalBytesSent += bytesToSend;
-
-        //        BroadcastChunk(new AudioChunk
-        //        {
-        //            Data = chunkData,
-        //            BitrateKbps = _targetBitrate,
-        //            DurationMs = (int)(bytesToSend / bytesPerMs),
-        //            StreamMetadata = GenerateMetadataString().ToIcyMetadata()
-        //        });
-
-        //        if (offset < totalBytes)
-        //        {
-        //            // Магия: считаем сколько ВСЕГО миллисекунд должно пройти от старта сервера
-        //            double expectedMs = _globalBytesSent / bytesPerMs;
-        //            double actualMs = _globalStreamStopwatch.Elapsed.TotalMilliseconds;
-        //            int sleepMs = (int)(expectedMs - actualMs);
-
-        //            if (sleepMs > 0)
-        //            {
-        //                await Task.Delay(sleepMs, cancellationToken);
-        //            }
-        //            // Если sleepMs отрицательный (сервер проспал), мы НЕ СПИМ вообще,
-        //            // а мгновенно выстреливаем следующий чанк, полностью уничтожая дрейф времени!
-        //        }
-        //    }
-        //}
 
         /// <summary>
         /// Метод публикации сообщения о текущем треке в Telegram-канал.
@@ -536,7 +485,6 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
         private readonly List<string> _history = [];
 
         private readonly Stopwatch _globalStreamStopwatch = new();
-        //private long _globalBytesSent = 0;
         private double _globalStreamDurationMs = 0; // Считаем абсолютное медиа-время в мс
         private bool _isFirstTrack = true;
         private readonly Random _random = new();
