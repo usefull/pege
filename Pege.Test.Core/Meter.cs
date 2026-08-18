@@ -79,6 +79,8 @@ namespace Pege.Test.Core
             });
         }
 
+        public Dictionary<string, List<PeriodSummary>> ReportItems => _report;
+
         public string Report
         {
             get

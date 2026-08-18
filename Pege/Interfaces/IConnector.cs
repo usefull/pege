@@ -11,7 +11,8 @@
         /// <param name="stream">Стрим.</param>
         /// <param name="httpRequest">HTTP-запрос.</param>
         /// <param name="httpResponse">HTTP-ответ.</param>
+        /// <param name="config">Конфигурационная информация.</param>
         /// <param name="cancellationToken">Токен остановки.</param>
-        Task ConsumeAsync(IStream stream, HttpRequest httpRequest, HttpResponse httpResponse, CancellationToken cancellationToken);
+        Task ConsumeAsync(IStream stream, HttpRequest httpRequest, HttpResponse httpResponse, IConfiguration config, CancellationToken cancellationToken);
     }
 }

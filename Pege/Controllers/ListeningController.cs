@@ -53,7 +53,7 @@ namespace Pege.Controllers
             var feature = HttpContext.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpResponseBodyFeature>();
             feature?.DisableBuffering();
 
-            await connector.ConsumeAsync(stream, Request, Response, HttpContext.RequestAborted);
+            await connector.ConsumeAsync(stream, Request, Response, serviceProvider.GetRequiredService<IConfiguration>(), HttpContext.RequestAborted);
 
             return new EmptyResult();
         }
