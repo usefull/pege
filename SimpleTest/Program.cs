@@ -1,17 +1,17 @@
 ﻿
 using Pege.Test.Core;
 
-var streamUrl = "http://185.250.180.248:8080/stream/_";
-//var streamUrl = "http://localhost:5088/stream/_";
+//var streamUrl = "http://185.250.180.248:8080/stream/_";
+var streamUrl = "http://localhost:5088/stream/_";
 
 // Кол-во новых потребителей на каждом шаге приращения.
 var consumerStep = 50;
 
 // Интервал в секундах между шагами.
-var interval = 10;
+var interval = 40;
 
 // Максимальное кол-во потребителей.
-var limit = 600;
+var limit = 200;
 
 // Продолжительность теста в минутах при максимуме потребителей.
 var limitDuration = 2880;
@@ -30,7 +30,7 @@ var httpClient = new HttpClient(handler)
 
 for (var i = 0; i < limit; i++)
 {
-    if (i % consumerStep == 0)
+    if (i % consumerStep == 0 && i != 0)
         await Task.Delay(TimeSpan.FromSeconds(interval));    
 
     var c = new ConsumerPretender(i, streamUrl, httpClient);

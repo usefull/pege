@@ -1,6 +1,8 @@
 ﻿using Pege.Entities;
 using Pege.Interfaces;
+using Pege.Test.Core;
 using Serilog;
+using System.Diagnostics;
 using System.Text;
 
 namespace Pege.Streaming
@@ -57,7 +59,17 @@ namespace Pege.Streaming
                     byte[]? pendingMetadata = chunk.StreamMetadata;
                     if (!supportIcy)
                     {
+                        // **************** FOR TEST **************** //
+                        //var ts = Stopwatch.GetTimestamp();
+                        // **************** FOR TEST **************** //
+
                         await httpResponse.Body.WriteAsync(chunk.Data, cancellationToken);
+
+                        // **************** FOR TEST **************** //
+                        //double valueMs = Stopwatch.GetElapsedTime(ts).TotalMilliseconds;
+                        //meter.Apply(valueMs);
+                        // **************** FOR TEST **************** //
+
                         continue;
                     }
 

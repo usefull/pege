@@ -16,6 +16,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\Pege.Analyzers\Pege.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\Pege.Test.Core\Pege.Test.Core.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
