@@ -15,6 +15,13 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <Compile Remove="Новая папка\**" />
+	  <Content Remove="Новая папка\**" />
+	  <EmbeddedResource Remove="Новая папка\**" />
+	  <None Remove="Новая папка\**" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<ProjectReference Include="..\Pege.Analyzers\Pege.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\Pege.Test.Core\Pege.Test.Core.csproj" />
 	</ItemGroup>
@@ -63,7 +70,6 @@
 
 	<ItemGroup>
 	  <Folder Include="storage\" />
-	  <Folder Include="Новая папка\" />
 	</ItemGroup>
 
 </Project>
