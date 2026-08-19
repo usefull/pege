@@ -13,6 +13,10 @@ namespace Pege.Streaming
     {
         public void Start()
         {
+            _log.Information($"DelayMeasurementMode: {_delayMeasurementMode}");
+            _log.Information($"ConsumerRate: [{string.Join(", ", _consumerRate)}]");
+            _log.Information($"MeasuringPeriods: [{string.Join(", ", _periods)}]");
+
             _task = Task.Run(async () => {
                 try { await BroadcastCycleAsync(_cts.Token); }
                 catch (OperationCanceledException) { }

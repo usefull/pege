@@ -73,28 +73,22 @@ namespace Pege.Test.Core
                 await OnConnectionEstablishedAsync();
 
                 using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-                //var buffer = new byte[8192];
                 var buffer = new byte[32768];
                 int bytesRead;
-
-                var stopwatch = new Stopwatch();
+                long ts = 0;
 
                 while (true)
                 {
-                    stopwatch.Restart();
-
                     bytesRead = await stream.ReadAsync(buffer, cancellationToken);
-
-                    stopwatch.Stop();
+                    if (ts > 0)
+                    {
+                        var delayMs = Stopwatch.GetElapsedTime(ts).TotalMilliseconds;
+                        _ = Task.Run(() => DataDelay?.Invoke(this, new ConsumerDataDelayEventArgs { Id = _id, DelayMs = delayMs }));
+                    }
+                    ts = Stopwatch.GetTimestamp();
 
                     if (bytesRead <= 0)
-                        break;
-
-                    if (stopwatch.ElapsedMilliseconds > 2000)
-                    {
-                        var delay = stopwatch.ElapsedMilliseconds;
-                        _ = Task.Run(() => DataDelay?.Invoke(this, new ConsumerDataDelayEventArgs { Id = _id, Delay = delay }));
-                    }
+                        break;                   
                 }
             }
             catch (OperationCanceledException)

@@ -40,7 +40,7 @@ namespace Pege.Streaming
         private void MeasuringFinished(object? sender, EventArgs e)
         {
             _meter.MeasuringFinished -= MeasuringFinished;
-            _ = File.WriteAllTextAsync("stream.log", _meter.Report).ContinueWith(t =>
+            _ = File.WriteAllTextAsync("storage/stream.log", _meter.Report).ContinueWith(t =>
             {
                 if (t.Exception != null)
                     _log.Error($"Stream log saving error: {(t.Exception.InnerException == null ? t.Exception.Message : t.Exception.InnerException.Message)}");

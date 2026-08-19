@@ -92,11 +92,11 @@ namespace Pege.Streaming
                     return acc;
                 });
 
-                await File.WriteAllTextAsync("conector.log", result.ToString());
+                await File.WriteAllTextAsync("storage/conector.log", result.ToString());
             }).ContinueWith(t =>
             {
                 if (t.Exception != null)
-                    _log.Error($"Stream log saving error: {(t.Exception.InnerException == null ? t.Exception.Message : t.Exception.InnerException.Message)}");
+                    _log.Error($"Connector log saving error: {(t.Exception.InnerException == null ? t.Exception.Message : t.Exception.InnerException.Message)}");
                 else
                     _log.Information("Connector log saved.");
             });

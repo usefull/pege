@@ -69,6 +69,9 @@ ssh "$VPS_USER@$VPS_IP" TG_BOT_TOKEN="$TG_BOT_TOKEN" CONTAINER_NAME="$CONTAINER_
     if [ ! -f /root/storage/pege.env ]; then
         echo "# Создано автоматически при развертывании" > /root/storage/pege.env
         echo "Telegram__BotToken=${TG_BOT_TOKEN}" >> /root/storage/pege.env
+        echo "DelayMeasurementMode=true" >> /root/storage/pege.env
+        echo "ConsumerRate=[0, 50, 100, 150, 200]" >> /root/storage/pege.env
+        echo "MeasuringPeriods=[4, 15]" >> /root/storage/pege.env
         echo "ASPNETCORE_URLS=http://+:8080" >> /root/storage/pege.env
         echo "Файл /root/storage/pege.env создан на сервере, и в него записан токен."
     fi
