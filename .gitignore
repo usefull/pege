@@ -26,6 +26,7 @@ bld/
 # Visual Studio
 .vs
 *.user
+*.log
 
 # .NET Core
 project.lock.json
@@ -64,3 +65,6 @@ nunit-*.xml
 deploy.conf
 audio
 storage
+/Pege/stream.log
+/Pege/conector.log
+/Pege/conector.log

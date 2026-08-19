@@ -2,13 +2,12 @@
 using Pege.Data;
 using Pege.Entities;
 using Pege.Interfaces;
-using Pege.Test.Core;
 using Serilog;
 using System.Threading.Channels;
 
 namespace Pege.Streaming
 {
-    internal abstract class Stream<TStatus, TChunk>(TStatus status, IServiceProvider serviceProvider) : IStream
+    internal abstract partial class Stream<TStatus, TChunk>(TStatus status, IServiceProvider serviceProvider) : IStream
         where TStatus : StreamStatus, new()
         where TChunk : Chunk, new()
     {
@@ -74,38 +73,11 @@ namespace Pege.Streaming
             {
                 _consumers.Add(session);
 
-                // **************** FOR TEST **************** //
-                if (!_meter.IsMeasuring && _consumers.Count > _consumerRate[_measureStage])
-                {
-                    _measureStage++;
-                    _meter.StartMeasuring(_consumerRate[_measureStage].ToString(), [TimeSpan.FromSeconds(15), TimeSpan.FromSeconds(15)]);
-                    _log.Information($"{_consumerRate[_measureStage]}: measuring epoch started");
-
-                    if (_measureStage + 1 == _consumerRate.Length)
-                    {
-                        _log.Information("Waiting for measuring finished ...");
-                        _meter.MeasuringFinished += _meter_MeasuringFinished;
-                    }
-                }
-                // **************** FOR TEST **************** //
+                if (_delayMeasurementMode) StartMeasurement();
             }
 
             return (channel.Reader, sessionId);
-        }
-
-        // **************** FOR TEST **************** //
-        private void _meter_MeasuringFinished(object? sender, EventArgs e)
-        {
-            _meter.MeasuringFinished -= _meter_MeasuringFinished;
-            _ = File.WriteAllTextAsync("stream.log", _meter.Report).ContinueWith(t =>
-            {
-                if (t.Exception != null)
-                    _log.Error($"Stream log saving error: {(t.Exception.InnerException == null ? t.Exception.Message : t.Exception.InnerException.Message)}");
-                else
-                    _log.Information("Stream log saved.");
-            });
-        }
-        // **************** FOR TEST **************** //
+        }        
 
         public void Unsubscribe(Guid sessionId)
         {
@@ -124,9 +96,7 @@ namespace Pege.Streaming
         {
             lock (_lock)
             {
-                // **************** FOR TEST **************** //
-                _meter.Fire();
-                // **************** FOR TEST **************** //
+                if (_delayMeasurementMode) _meter.Fire();
 
                 if (_consumers.Count > 0)
                 {
@@ -164,11 +134,5 @@ namespace Pege.Streaming
         private readonly List<ConsumerSession> _consumers = [];
         private readonly Lock _lock = new();
         private readonly StreamStatus _status = status;
-
-        // **************** FOR TEST **************** //
-        private readonly Meter _meter = new();
-        private readonly int[] _consumerRate = serviceProvider.GetService<IConfiguration>().GetSection("ConsumerRate").Get<int[]>();
-        private int _measureStage = 0;
-        // **************** FOR TEST **************** //
     }
 }
