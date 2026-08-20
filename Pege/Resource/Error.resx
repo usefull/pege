@@ -188,6 +188,9 @@ Input file: {0}</value>
   <data name="AudioRateReadingError" xml:space="preserve">
     <value>Audio rate reading error for file: {0}. Reason: {1}</value>
   </data>
+  <data name="CodecNameReadingError" xml:space="preserve">
+    <value>Codec name reading error for file: {0}. Reason: {1}</value>
+  </data>
   <data name="ConnectionLost" xml:space="preserve">
     <value>Connection lost: {0}. Reconnecting in 10 seconds...</value>
   </data>
@@ -250,5 +253,18 @@ Input file: {0}</value>
   </data>
   <data name="StreamTypeLengthExceeded" xml:space="preserve">
     <value>The maximum length of a stream type is 150 characters.</value>
+  </data>
+  <data name="UnableDefineCodec" xml:space="preserve">
+    <value>Unable define codec</value>
+  </data>
+  <data name="UnableDefineSampleRate" xml:space="preserve">
+    <value>Unable define sample rate</value>
+  </data>
+  <data name="UnableDefineSamplesPerFrame" xml:space="preserve">
+    <value>Unable define frame size</value>
+  </data>
+  <data name="PreparingTrackError" xml:space="preserve">
+    <value>Preparing track error on file {0}:
+{1}</value>
   </data>
 </root>

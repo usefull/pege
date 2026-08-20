@@ -127,7 +127,7 @@
     <value>Empty response.</value>
   </data>
   <data name="Encoding" xml:space="preserve">
-    <value>Encoding: {0} to {1} kbps, {2} Hz</value>
+    <value>Encoding: {0} to AAC {1} Hz</value>
   </data>
   <data name="NoEncodingNeeded" xml:space="preserve">
     <value>No encoding needed.</value>

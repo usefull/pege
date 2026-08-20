@@ -98,6 +98,15 @@ namespace Pege.Resource {
         }
         
         /// <summary>
+        ///   Ищет локализованную строку, похожую на Codec name reading error for file: {0}. Reason: {1}.
+        /// </summary>
+        internal static string CodecNameReadingError {
+            get {
+                return ResourceManager.GetString("CodecNameReadingError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Ищет локализованную строку, похожую на Connection lost: {0}. Reconnecting in 10 seconds....
         /// </summary>
         internal static string ConnectionLost {
@@ -261,6 +270,16 @@ namespace Pege.Resource {
         }
         
         /// <summary>
+        ///   Ищет локализованную строку, похожую на Preparing track error on file {0}:
+        ///{1}.
+        /// </summary>
+        internal static string PreparingTrackError {
+            get {
+                return ResourceManager.GetString("PreparingTrackError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Ищет локализованную строку, похожую на A stream registraton date-time is required..
         /// </summary>
         internal static string RegisteredIsRequired {
@@ -410,6 +429,33 @@ namespace Pege.Resource {
         internal static string TempFilesDeleteError {
             get {
                 return ResourceManager.GetString("TempFilesDeleteError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Ищет локализованную строку, похожую на Unable define codec.
+        /// </summary>
+        internal static string UnableDefineCodec {
+            get {
+                return ResourceManager.GetString("UnableDefineCodec", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Ищет локализованную строку, похожую на Unable define sample rate.
+        /// </summary>
+        internal static string UnableDefineSampleRate {
+            get {
+                return ResourceManager.GetString("UnableDefineSampleRate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Ищет локализованную строку, похожую на Unable define frame size.
+        /// </summary>
+        internal static string UnableDefineSamplesPerFrame {
+            get {
+                return ResourceManager.GetString("UnableDefineSamplesPerFrame", resourceCulture);
             }
         }
         

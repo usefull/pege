@@ -88,7 +88,7 @@ namespace Pege.Resource {
         }
         
         /// <summary>
-        ///   Ищет локализованную строку, похожую на Encoding: {0} to {1} kbps, {2} Hz.
+        ///   Ищет локализованную строку, похожую на Encoding: {0} to AAC {1} Hz.
         /// </summary>
         internal static string Encoding {
             get {
