@@ -7,15 +7,52 @@ namespace Pege.Services
     /// </summary>
     internal class FileLockManager
     {
-        private readonly ConcurrentDictionary<string, object> _locks = new(StringComparer.OrdinalIgnoreCase);
+        private readonly ConcurrentDictionary<string, RefCountedSemaphore> _locks = new(StringComparer.OrdinalIgnoreCase);
 
-        /// <summary>
-        /// Метод возвращает уникальный объект блокировки для конкретного пути файла.
-        /// </summary>
-        public object GetLock(string filePath)
+        public async Task<IDisposable> AcquireLockAsync(string filePath)
         {
             string key = Path.GetFullPath(filePath);
-            return _locks.GetOrAdd(key, _ => new object());
+            RefCountedSemaphore item;
+
+            lock (_locks)
+            {
+                item = _locks.GetOrAdd(key, _ => new RefCountedSemaphore());
+                item.RefCount++;
+            }
+
+            await item.Semaphore.WaitAsync();
+
+            return new Releaser(this, key, item);
+        }
+
+        private class RefCountedSemaphore
+        {
+            public readonly SemaphoreSlim Semaphore = new(1, 1);
+            public int RefCount;
+        }
+
+        private class Releaser(FileLockManager manager, string key, RefCountedSemaphore item) : IDisposable
+        {
+            private bool _disposed;
+
+            public void Dispose()
+            {
+                if (_disposed) return;
+                _disposed = true;
+
+                item.Semaphore.Release();
+
+                lock (manager._locks)
+                {
+                    item.RefCount--;
+                    if (item.RefCount == 0)
+                    {
+                        manager._locks.TryRemove(key, out _);
+                        item.Semaphore.Dispose();
+                    }
+                }
+            }
         }
     }
+
 }

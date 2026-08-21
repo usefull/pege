@@ -8,16 +8,17 @@ using Pege.Resource;
 using Pege.Services;
 using Serilog;
 using System.Collections.Concurrent;
-using System.Diagnostics;
+using System.Data;
+using System.Reflection.PortableExecutable;
 using System.Text;
-using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Pege.Streaming
 {
     /// <summary>
     /// Функционал стрима, транслирующего по кругу аудиофайлы из указанной папки.
     /// </summary>
-    internal class RandomFileAudioStream : Stream<FileAudioStreamStatus, AudioChunk>, IFileUploader
+    internal partial class RandomFileAudioStream : Stream<FileAudioStreamStatus, AudioChunk>, IFileUploader
     {
         /// <summary>
         /// Конструктор.
@@ -53,6 +54,10 @@ namespace Pege.Streaming
                     if (result.Filename != trackPath)
                         _history.Add(result.Filename);
                 }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
                 catch (Exception ex)
                 {
                     _log.Error(string.Format(Error.PreparingTrackError, trackPath, ex.Message));
@@ -68,10 +73,13 @@ namespace Pege.Streaming
         /// <param name="cancellationToken">Токен остановки трансляции.</param>
         protected override async Task BroadcastCycleAsync(CancellationToken cancellationToken)
         {
-            _log.Information(Message.BroadcastingStarted);
-
             try
             {
+                if (!_ffmpegService.IsFFmpegAvailable() || !_ffmpegService.IsFFprobeAvailable())
+                    throw new Exception(Error.FFmpegNotAvailable);
+
+                _log.Information(Message.BroadcastingStarted);
+
                 // Загружаем первый трек
                 var trackData = await GetNextTrackAsync(cancellationToken);
                 CastedStatus.Artist = trackData.Artist;
@@ -206,7 +214,7 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
         /// </summary>
         private string GetNextFilename()
         {
-            var allFiles = Directory.GetFiles(CastedStatus.Path!, "*.*").ToArray();
+            var allFiles = Directory.GetFiles(CastedStatus.Path!, "*.*");
 
             if (allFiles.Length == 0)
                 throw new InvalidOperationException(Error.NoFilesToPlay);
@@ -260,7 +268,7 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
             CastedStatus.TotalDuration = tracks.Aggregate(TimeSpan.Zero, (acc, t) => acc + t.Duration);
             CastedStatus.TotalTracks = tracks.Count;
 
-            return tracks.ToList();
+            return [.. tracks];
         }
 
         /// <summary>
@@ -269,24 +277,20 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
         /// <param name="fileName">Имя файла.</param>
         /// <exception cref="ApplicationException">В случае, если каталог плейлиста не существует.</exception>
         /// <exception cref="FileNotFoundException">В случае, если файл не найден в плейлисте.</exception>
-        public void DeleteTrack(string fileName)
+        public async Task DeleteTrackAsync(string fileName)
         {
             if (!Path.Exists(CastedStatus.Path))
                 throw new ApplicationException(Error.DirectoryDoesNotExist);
 
             var path = Path.Combine(CastedStatus.Path!, fileName);
 
-            var lockManager = _serviceProvider.GetRequiredService<FileLockManager>();
-            lock (lockManager.GetLock(path))
+            if (File.Exists(path))
             {
-                if (File.Exists(path))
-                {
-                    File.Delete(path);
-                    _ = UpdateTotalTracksAndDurationAsync();
-                }
-                else
-                    throw new FileNotFoundException();
+                File.Delete(path);
+                _ = UpdateTotalTracksAndDurationAsync();
             }
+            else
+                throw new FileNotFoundException();
         }
 
         /// <summary>
@@ -301,6 +305,10 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
         {
             var result = new UploadResult();
             string? currentFileName = null;
+
+            var allFiles = Directory.GetFiles(CastedStatus.Path!, "*.*")
+                .Select(f => Path.GetFileNameWithoutExtension(f))
+                .ToList();
 
             do
             {
@@ -326,18 +334,16 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
                             throw new ApplicationException(Error.UnableReadUploadedFileName);
                         }
 
-                        string? fileExtension = Path.GetExtension(currentFileName)?.ToLowerInvariant();
-                        if (fileExtension != ".mp3" && fileExtension != ".aac")
-                        {
-                            throw new ApplicationException(Error.UnacceptableFileExtension);
-                        }
-
                         if (!Path.Exists(CastedStatus.Path))
                             throw new ApplicationException(Error.DirectoryDoesNotExist);
 
-                        var filename = Path.Combine(CastedStatus.Path, currentFileName);
-                        if (File.Exists(filename))
+                        var name = SpaceRegex().Replace(Path.GetFileNameWithoutExtension(currentFileName), " ").Trim();
+                        var ext = Path.GetExtension(currentFileName);
+                        currentFileName = $"{name}{ext}";
+                        if (allFiles.Contains(name))
                             throw new ApplicationException(string.Format(Error.FileAlreadyExists, currentFileName));
+
+                        var filename = Path.Combine(CastedStatus.Path, currentFileName);                            
 
                         using var targetStream = new FileStream(filename, FileMode.Create, FileAccess.Write, FileShare.None, 4096, useAsync: true);
 
@@ -362,9 +368,13 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
             var ffmpegService = _serviceProvider.GetService<FFmpegService>();
 
             if (!quietly && ffmpegService != null)
-                updateStatusTask?.ContinueWith(async task => {
-                    var list = task.Result.IntersectBy(result.Errors.Where(i => i.Value == null).Select(i => i.Key), i => Path.GetFileName(i.Filename)).ToList();
-                    await SendNewTracksInfoToTgChannel(list);
+                updateStatusTask?.ContinueWith(async task =>
+                {
+                    var newFilesInfo = task.Result.IntersectBy(
+                        result.Errors.Where(i => i.Value == null).Select(i => i.Key),
+                        i => Path.GetFileName(i.Filename)).ToList();
+
+                    await SendNewTracksInfoToTgChannel(newFilesInfo);
                 });
 
             return result;
@@ -419,11 +429,11 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
         /// </summary>
         private readonly List<string> _history = [];
 
-        private readonly Stopwatch _globalStreamStopwatch = new();
-        private double _globalStreamDurationMs = 0; // Считаем абсолютное медиа-время в мс
-        private bool _isFirstTrack = true;
         private readonly Random _random = new();
         private readonly int _targetSamplerate = 44100;
         private readonly int _framesPerChunk = 15;
+
+        [GeneratedRegex(@"\s+")]
+        private static partial Regex SpaceRegex();
     }
 }

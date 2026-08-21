@@ -48,7 +48,7 @@ namespace Pege.Controllers
             if (factory[streamId] is not IFileUploader stream)
                 throw new ValidationException(Error.StreamDoesntSupportUploading);
 
-            stream.DeleteTrack(filename);
+            await stream.DeleteTrackAsync(filename);
 
             return Ok();
         }

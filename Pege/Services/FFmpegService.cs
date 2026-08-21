@@ -13,7 +13,7 @@ namespace Pege.Services
     /// <remarks>
     /// Конструктор.
     /// </remarks>
-    internal class FFmpegService(FileLockManager lockManager)
+    internal class FFmpegService()
     {
         /// <summary>
         /// Логгер.
@@ -43,8 +43,7 @@ namespace Pege.Services
 
                     tempOutput = Path.Combine(Path.GetTempPath(), $"output_{Guid.NewGuid()}.m4a");
 
-                    string arguments = $"-i \"{filePath}\" -c:a libfdk_aac -vbr 4 -movflags +faststart \"{tempOutput}\"";
-
+                    string arguments = $"-i \"{filePath}\" -c:a libfdk_aac -vbr 4 -movflags +faststart -vn \"{tempOutput}\"";
                     using var process = new Process
                     {
                         StartInfo = new ProcessStartInfo
@@ -77,21 +76,21 @@ namespace Pege.Services
                     if (process.ExitCode != 0) throw new Exception(errorBuilder.ToString());
                     if (!File.Exists(tempOutput)) throw new Exception(string.Format(Error.FFmpegOutputError, filePath));
 
+                    result = await GetTrackMetadataAsync(tempOutput, cancellationToken);
+
                     trackBytes = await File.ReadAllBytesAsync(tempOutput, cancellationToken);
                     if (trackBytes.Length == 0) throw new Exception(string.Format(Error.FFmpegOutputError, filePath));
+                    
+                    var directory = Path.GetDirectoryName(filePath);
+                    var fileName = $"{Path.GetFileNameWithoutExtension(filePath)}.m4a";
+                    string targetPath = Path.Combine(directory, fileName);
 
-                    lock (_lockManager.GetLock(filePath))
-                    {
-                        var directory = Path.GetDirectoryName(filePath);
-                        var fileName = $"{Path.GetFileNameWithoutExtension(filePath)}.m4a";
-                        string targetPath = Path.Combine(directory, fileName);
+                    try { File.Delete(filePath); } catch { }
 
-                        try { File.Delete(filePath); } catch { }
+                    File.Copy(tempOutput, targetPath, true);
 
-                        File.Copy(tempOutput, targetPath, true);
-
-                        try { File.Delete(tempOutput); } catch { }
-                    }
+                    try { File.Delete(tempOutput); } catch { }
+                    
                 }
 
                 result.Chunks = ConvertM4AToAdtsChunks(trackBytes, framesPerChunk);
@@ -226,40 +225,9 @@ namespace Pege.Services
         }
 
         /// <summary>
-        /// Метод получения продолжительности медиафайла в секундах.
-        /// </summary>
-        /// <param name="filePath">Путь к медиафайлу.</param>
-        /// <param name="cancellationToken">Токен отмены операции.</param>
-        public async Task<double> GetDurationAsync(string filePath, CancellationToken cancellationToken)
-        {
-            if (!IsFFprobeAvailable())
-                return 0;
-
-            var psi = new ProcessStartInfo
-            {
-                FileName = _ffprobePath,
-                Arguments = $"-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 \"{filePath}\"",
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            using var process = new Process { StartInfo = psi };
-            process.Start();
-            var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
-            await process.WaitForExitAsync(cancellationToken);
-
-            if (double.TryParse(output.Trim(), System.Globalization.NumberStyles.Float,
-                System.Globalization.CultureInfo.InvariantCulture, out var seconds))
-                return seconds;
-
-            return 0;
-        }
-
-        /// <summary>
         /// Метод проверки доступности утилиты FFmpeg.
         /// </summary>
-        private bool IsFFmpegAvailable()
+        public bool IsFFmpegAvailable()
         {
             try
             {
@@ -296,7 +264,7 @@ namespace Pege.Services
         /// <summary>
         /// Метод проверки доступности утилиты FFprobe.
         /// </summary>
-        private bool IsFFprobeAvailable()
+        public bool IsFFprobeAvailable()
         {
             try
             {
@@ -383,7 +351,7 @@ namespace Pege.Services
         /// <summary>
         /// Конвертирует M4A VBR данные в чанки ADTS полностью в памяти без использования временных файлов на диске.
         /// </summary>
-        public static Queue<ReadOnlyMemory<byte>> ConvertM4AToAdtsChunks(ReadOnlyMemory<byte> m4aData, int framesPerChunk)
+        public Queue<ReadOnlyMemory<byte>> ConvertM4AToAdtsChunks(ReadOnlyMemory<byte> m4aData, int framesPerChunk)
         {
             if (m4aData.IsEmpty) throw new ArgumentException("M4A data is empty.", nameof(m4aData));
             if (framesPerChunk <= 0) throw new ArgumentException("Frames per chunk must be greater than 0.", nameof(framesPerChunk));
@@ -391,7 +359,7 @@ namespace Pege.Services
             // Настройка кроссплатформенного запуска ffmpeg
             var startInfo = new ProcessStartInfo
             {
-                FileName = "ffmpeg",
+                FileName = _ffmpegPath,
                 // -i pipe:0 -> принимать данные на вход из stdin
                 // -c:a copy -> копировать аудио-поток БЕЗ перекодирования (очень быстро)
                 // -f adts   -> упаковать поток в формат ADTS (.aac фреймы с заголовками)
@@ -516,7 +484,5 @@ namespace Pege.Services
         /// Путь к утилите FFprobeg.
         /// </summary>
         private readonly string _ffprobePath = GetFFprobePath();
-
-        private readonly FileLockManager _lockManager = lockManager;
     }
 }
