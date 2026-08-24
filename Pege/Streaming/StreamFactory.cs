@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.EntityFrameworkCore;
 using Pege.Data;
 using Pege.Entities;
 using Pege.Exceptions;
@@ -76,18 +77,15 @@ namespace Pege.Streaming
                 await DestroyAsync(i.Id!);
         }
 
-        public IStream this[string streamId]
+        public async Task<IStream> GetStreamAsync(string streamId)
         {
-            get
-            {
-                var streamInfo = GetStreamInfoAsync(streamId).GetAwaiter().GetResult()
-                    ?? throw new UnknownStreamException();
+            var streamInfo = GetStreamInfoAsync(streamId).GetAwaiter().GetResult()
+                ?? throw new UnknownStreamException();
 
-                if (!_streams.TryGetValue(streamInfo.Id!, out var stream))
-                    throw new StreamUnavailableException(Error.StreamUnavailable);
+            if (!_streams.TryGetValue(streamInfo.Id!, out var stream))
+                throw new StreamUnavailableException(Error.StreamUnavailable);
 
-                return stream;
-            }
+            return stream;
         }
 
         public async Task<StreamStatus?> GetStreamStatusAsync(string id)
@@ -97,7 +95,7 @@ namespace Pege.Streaming
 
             try
             {
-                stream = this[id];
+                stream = await GetStreamAsync(id);
                 status = stream.Status;
             }
             catch (InvalidOperationException)
@@ -129,17 +127,22 @@ namespace Pege.Streaming
         {
             using var db = dataContextFactory.CreateDbContext();
             var items = await db.Streams.AsNoTracking().ToListAsync();
-            return items.Select(si =>
+
+            var results = new List<StreamStatus>();
+
+            foreach (var si in items)
             {
                 try
                 {
-                    return this[si.Id!].Status;
+                    var stream = await GetStreamAsync(si.Id!);
+                    results.Add(stream.Status);
                 }
                 catch
                 {
-                    return si.ToStatus();
+                    results.Add(si.ToStatus());
                 }
-            });
+            }
+            return results;
         }
 
         public async Task<Stream> ListAsCsvAsync(bool originalUri = false)
@@ -184,7 +187,7 @@ namespace Pege.Streaming
 
             try
             {
-                _ = this[info.Id!];
+                _ = await GetStreamAsync(info.Id!);
             }
             catch (StreamUnavailableException)
             {
@@ -222,8 +225,9 @@ namespace Pege.Streaming
 
         private async Task<StreamInfo?> GetStreamInfoAsync(string id)
         {
-            using var db = dataContextFactory.CreateDbContext();            
-            return await db.Streams.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id.ToLower().Trim());
+            var i = id.ToLower().Trim();
+            using var db = dataContextFactory.CreateDbContext();          
+            return await db.Streams.AsNoTracking().FirstOrDefaultAsync(s => s.Id == i);
         }
 
         private async Task ResetStreamStopedAsync(string id)

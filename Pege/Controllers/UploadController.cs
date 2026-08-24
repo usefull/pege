@@ -33,7 +33,7 @@ namespace Pege.Controllers
             if (!(Request.ContentType?.IsMultipartContentType() ?? false))
                 throw new ValidationException(Error.MultipartFormDataRequired);
 
-            if (factory[streamId!] is not IFileUploader stream)
+            if (await factory.GetStreamAsync(streamId!) is not IFileUploader stream)
                 throw new ValidationException(Error.StreamDoesntSupportUploading);
 
             var boundary = MediaTypeHeaderValue.Parse(Request.ContentType).GetBoundary(70);
@@ -45,7 +45,7 @@ namespace Pege.Controllers
         [HttpDelete("{filename}")]
         public async Task<IActionResult> Delete(string streamId, string filename)
         {
-            if (factory[streamId] is not IFileUploader stream)
+            if (await factory.GetStreamAsync(streamId) is not IFileUploader stream)
                 throw new ValidationException(Error.StreamDoesntSupportUploading);
 
             await stream.DeleteTrackAsync(filename);

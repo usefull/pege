@@ -20,7 +20,7 @@ namespace Pege.Streaming
                     _meters.Add(_meter);
                 }
 
-                if (_consumerCount > consumerRate[_measureStage] && _consumerCount >= 50)
+                if (_consumerCount > consumerRate[_measureStage] && _consumerCount >= 50 && _measureStage < consumerRate.Length - 1)
                 {
                     _measureStage++;
                     foreach (var meter in _meters)
@@ -92,7 +92,7 @@ namespace Pege.Streaming
                     return acc;
                 });
 
-                await File.WriteAllTextAsync("storage/conector.log", result.ToString());
+                await File.WriteAllTextAsync("storage/connector.log", result.ToString());
             }).ContinueWith(t =>
             {
                 if (t.Exception != null)

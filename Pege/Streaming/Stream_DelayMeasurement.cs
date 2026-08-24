@@ -16,7 +16,7 @@ namespace Pege.Streaming
         /// </summary>
         private void StartMeasurement()
         {
-            if (!_meter.IsMeasuring && _consumers.Count > _consumerRate[_measureStage])
+            if (!_meter.IsMeasuring && _consumers.Count > _consumerRate[_measureStage] && _measureStage < _consumerRate.Length - 1)
             {
                 _measureStage++;
                 _meter.StartMeasuring(_consumerRate[_measureStage].ToString(), [.. _periods.Select(p => TimeSpan.FromSeconds(p))]);

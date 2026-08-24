@@ -25,7 +25,7 @@ namespace Pege.Controllers
         {
             var streamFactory = serviceProvider.GetRequiredService<StreamFactory>();
 
-            var stream = streamFactory[streamId];
+            var stream = await streamFactory.GetStreamAsync(streamId);
 
             var streamType = stream.GetType();
             Type? chunkType = null;
