@@ -41,6 +41,11 @@
         public int SamplesPerFrame { get; set; }
 
         /// <summary>
+        /// Признак того, что файл получен перекодировкой из FLAC.
+        /// </summary>
+        public bool FromFlac { get; set; }
+
+        /// <summary>
         /// Чанки.
         /// </summary>
         public Queue<ReadOnlyMemory<byte>>? Chunks { get; set; }

@@ -9,7 +9,6 @@ using Pege.Services;
 using Serilog;
 using System.Collections.Concurrent;
 using System.Data;
-using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -84,6 +83,7 @@ namespace Pege.Streaming
                 var trackData = await GetNextTrackAsync(cancellationToken);
                 CastedStatus.Artist = trackData.Artist;
                 CastedStatus.Track = trackData.Title;
+                CastedStatus.FromFlac = trackData.FromFlac;
 
                 while (true)
                 {
@@ -97,6 +97,7 @@ namespace Pege.Streaming
                             var data = await GetNextTrackAsync(cancellationToken);
                             CastedStatus.NextArtist = data.Artist;
                             CastedStatus.NextTrack = data.Title;
+                            CastedStatus.NextFromFlack = data.FromFlac;
                             return data;
                         },
                         cancellationToken
@@ -116,6 +117,7 @@ namespace Pege.Streaming
 
                     CastedStatus.NextArtist = null;
                     CastedStatus.NextTrack = null;
+                    CastedStatus.NextFromFlack = false;
                 }
             }
             catch { throw; }

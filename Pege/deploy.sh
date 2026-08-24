@@ -20,15 +20,19 @@ echo "=== Старт развертывания проекта на VPS ($VPS_IP
 
 # Упаковка исходного кода локально (исключаем лишний мусор)
 echo "Упаковка исходного кода проекта..."
+PROJECT_DIR=$(pwd) # Запоминаем, где мы сейчас
+cd ..              # Поднимаемся в папку решения
 tar --exclude='bin' \
     --exclude='obj' \
     --exclude='.git' \
     --exclude='.vs' \
-    --exclude='mp3' \
+    --exclude='audio' \
     --exclude='storage' \
     -czf /tmp/project.tar.gz .
 
-# Создание временной папки на VPS и копирование легкого архива исходников
+cd "$PROJECT_DIR"  # Возвращаемся обратно в папку проекта
+
+# Создание временной папки на VPS и копирование архива исходников
 echo "Копирование исходного кода на VPS..."
 ssh -o StrictHostKeyChecking=no "$VPS_USER@$VPS_IP" "mkdir -p /root/pege_build"
 scp /tmp/project.tar.gz "$VPS_USER@$VPS_IP:/root/pege_build/project.tar.gz"
@@ -60,28 +64,37 @@ ssh "$VPS_USER@$VPS_IP" TG_BOT_TOKEN="$TG_BOT_TOKEN" CONTAINER_NAME="$CONTAINER_
     cd /root/pege_build
     tar -xzf project.tar.gz
     rm project.tar.gz
+
+    cp $(which ffmpeg) ./ffmpeg
+    cp $(which ffprobe) ./ffprobe
     
     # Подготовка папок в каталоге /root
     mkdir -p /root/storage
     mkdir -p /root/audio
     
-    # Создаем и заполняем .env файл, если его нет
-    if [ ! -f /root/storage/pege.env ]; then
-        echo "# Создано автоматически при развертывании" > /root/storage/pege.env
-        echo "Telegram__BotToken=${TG_BOT_TOKEN}" >> /root/storage/pege.env
-        echo "DelayMeasurementMode=true" >> /root/storage/pege.env
-        echo "ConsumerRate=[0, 50, 100, 150, 200]" >> /root/storage/pege.env
-        echo "MeasuringPeriods=[4, 15]" >> /root/storage/pege.env
-        echo "ASPNETCORE_URLS=http://+:8080" >> /root/storage/pege.env
-        echo "Файл /root/storage/pege.env создан на сервере, и в него записан токен."
-    fi
+    # Создаем новый или полностью перезаписываем существующий .env файл
+    cat << ENV_EOF > /root/storage/pege.env
+# Создано автоматически при развертывании
+Telegram__BotToken=${TG_BOT_TOKEN}
+DelayMeasurementMode=true
+ConsumerRate__0=0
+ConsumerRate__1=50
+ConsumerRate__2=100
+ConsumerRate__3=150
+ConsumerRate__4=200
+MeasuringPeriods__0=4
+MeasuringPeriods__1=15
+ASPNETCORE_URLS=http://+:8080
+ENV_EOF
+
+    echo "Файл /root/storage/pege.env успешно обновлен на сервере."
 
     # Перед сборкой получаем ID текущего (старого) образа приложения, чтобы потом его удалить
     OLD_IMAGE_ID=$(docker images -q ${IMAGE_NAME}:latest 2>/dev/null || true)
 
     # Сборка нового Docker-образа прямо на сервере
     echo "Сборка Docker-образа на сервере (используется локальный кэш)..."
-    docker build -t ${IMAGE_NAME}:latest .
+    docker build -t ${IMAGE_NAME}:latest -f Pege/Dockerfile .
 
     # Остановка и удаление старого контейнера, если он существует
     if [ $(docker ps -a -q -f name=^/${CONTAINER_NAME}$) ]; then

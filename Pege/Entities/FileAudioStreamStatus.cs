@@ -30,9 +30,19 @@ namespace Pege.Entities
         public int TotalTracks { get; set; }
 
         /// <summary>
+        /// Признак того, что текущий трек получен перекодировкой из FLAC.
+        /// </summary>
+        public bool FromFlac { get; set; }
+
+        /// <summary>
         /// Общая продолжительность.
         /// </summary>
         public TimeSpan TotalDuration { get; set; }
+
+        /// <summary>
+        /// Признак того, что следующий трек получен перекодировкой из FLAC.
+        /// </summary>
+        public bool NextFromFlack { get; set; }
 
         public override void FromDescription(StreamDescriptor streamDescriptor)
         {

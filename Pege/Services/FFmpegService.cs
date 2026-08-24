@@ -43,7 +43,9 @@ namespace Pege.Services
 
                     tempOutput = Path.Combine(Path.GetTempPath(), $"output_{Guid.NewGuid()}.m4a");
 
-                    string arguments = $"-i \"{filePath}\" -c:a libfdk_aac -vbr 4 -movflags +faststart -vn \"{tempOutput}\"";
+                    var fromFlac = result.Codec == "flac" ? "-metadata comment=\"from FLAC\"" : string.Empty;
+
+                    string arguments = $"-i \"{filePath}\" -ar {targetSampleRate} -af loudnorm=I=-18:TP=-1.5:linear=true -c:a libfdk_aac -vbr 5 -vn -movflags +faststart {fromFlac} \"{tempOutput}\"";
                     using var process = new Process
                     {
                         StartInfo = new ProcessStartInfo
@@ -84,6 +86,7 @@ namespace Pege.Services
                     var directory = Path.GetDirectoryName(filePath);
                     var fileName = $"{Path.GetFileNameWithoutExtension(filePath)}.m4a";
                     string targetPath = Path.Combine(directory, fileName);
+                    result.Filename = targetPath;
 
                     try { File.Delete(filePath); } catch { }
 
@@ -129,7 +132,7 @@ namespace Pege.Services
                 Title = Path.GetFileNameWithoutExtension(filePath)
             };
 
-            string arguments = $"-v error -show_entries stream=sample_rate:packet=duration:stream=codec_name:format=duration:format_tags=artist,title -read_intervals %+1 -of ini \"{filePath}\"";
+            string arguments = $"-v error -select_streams a -show_entries stream=sample_rate:packet=duration:stream=codec_name:format=duration:format_tags=artist,title -read_intervals %+1 -of ini \"{filePath}\"";
 
             using var process = new Process
             {
@@ -210,6 +213,8 @@ namespace Pege.Services
                             result.Title = value;
                         else if (key.Equals("artist", StringComparison.OrdinalIgnoreCase))
                             result.Artist = value;
+                        else if (key.Equals("comment", StringComparison.OrdinalIgnoreCase))
+                            result.FromFlac = value.Contains("from FLAC");
                     }
                 }
             }

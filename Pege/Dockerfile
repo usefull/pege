@@ -9,22 +9,31 @@ EXPOSE 8080
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
+    libfdk-aac2 \
     && rm -rf /var/lib/apt/lists/*
+
+# Подменяем собранным с поддержкой libfdk
+COPY ffmpeg /usr/bin/ffmpeg
+COPY ffprobe /usr/bin/ffprobe
+RUN chmod +x /usr/bin/ffmpeg
+RUN chmod +x /usr/bin/ffprobe
 USER $APP_UID
 
 # Этот этап используется для сборки проекта службы
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["Pege.csproj", "./"]
-RUN dotnet restore "./Pege.csproj"
+COPY ["Pege/Pege.csproj", "Pege/"]
+COPY ["Pege.Test.Core/Pege.Test.Core.csproj", "Pege.Test.Core/"]
+RUN dotnet restore "Pege/Pege.csproj"
 COPY . .
-RUN dotnet build "./Pege.csproj" -c $BUILD_CONFIGURATION -o /app/build
+WORKDIR "/src/Pege"
+RUN dotnet build "Pege.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # Этот этап используется для публикации проекта службы, который будет скопирован на последний этап
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./Pege.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "Pege.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # Этот этап используется в рабочей среде или при запуске из VS в обычном режиме (по умолчанию, когда конфигурация отладки не используется)
 FROM base AS final
