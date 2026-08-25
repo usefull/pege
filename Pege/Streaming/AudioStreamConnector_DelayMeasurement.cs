@@ -41,11 +41,12 @@ namespace Pege.Streaming
         {
             _meters[0].MeasuringFinished -= MeasuringFinished;
             _ = Task.Run(async () =>
-            {
+        {
                 var result = new StringBuilder("Label\tPeriod\tCount\tAvg\tMedian\tJitter\tP99\tMax\tStdDev\n");
-                _meters[0].ReportItems.Keys.Aggregate(result, (acc, label) =>
+                var m = _meters.First(i => i.ReportItems.Count != 0);
+                result = m.ReportItems.Keys.Aggregate(result, (acc, label) =>
                 {
-                    _meters[0].ReportItems[label].Aggregate(result, (ac, ps) =>
+                    acc = m.ReportItems[label].Aggregate(result, (ac, ps) =>
                     {
                         long count = 0;
                         double avg = 0;
@@ -57,13 +58,16 @@ namespace Pege.Streaming
                         {
                             if (meter.ReportItems.ContainsKey(label))
                             {
-                                var item = meter.ReportItems[label].First(p => p.PeriodIndex == ps.PeriodIndex);
-                                count += item.Count;
-                                avg += item.Avg * item.Count;
-                                median += item.Median * item.Count;
-                                jitter += item.Jitter * item.Count;
-                                p99 += item.P99 * item.Count;
-                                if (max < item.Max) max = item.Max;
+                                var item = meter.ReportItems[label].FirstOrDefault(p => p.PeriodIndex == ps.PeriodIndex);
+                                if (item != null)
+                                {
+                                    count += item.Count;
+                                    avg += item.Avg * item.Count;
+                                    median += item.Median * item.Count;
+                                    jitter += item.Jitter * item.Count;
+                                    p99 += item.P99 * item.Count;
+                                    if (max < item.Max) max = item.Max;
+                                }
                             }
                             else
                             {
@@ -80,8 +84,9 @@ namespace Pege.Streaming
                         {
                             if (meter.ReportItems.ContainsKey(label))
                             {
-                                var item = meter.ReportItems[label].First(p => p.PeriodIndex == ps.PeriodIndex);
-                                std += item.Count * ((item.StdDev * item.StdDev) + Math.Pow(item.Avg - avg, 2));
+                                var item = meter.ReportItems[label].FirstOrDefault(p => p.PeriodIndex == ps.PeriodIndex);
+                                if (item != null)
+                                    std += item.Count * ((item.StdDev * item.StdDev) + Math.Pow(item.Avg - avg, 2));
                             }
                         }
                         std = std / count;
@@ -109,6 +114,5 @@ namespace Pege.Streaming
         private readonly static object _lock = new();
         private static int _consumerCount = 0;
         private static int _measureStage = 0;
-
     }
 }
