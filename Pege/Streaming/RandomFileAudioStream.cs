@@ -84,6 +84,7 @@ namespace Pege.Streaming
                 CastedStatus.Artist = trackData.Artist;
                 CastedStatus.Track = trackData.Title;
                 CastedStatus.FromFlac = trackData.FromFlac;
+                UpdateIcyMetadata();
 
                 while (true)
                 {
@@ -97,6 +98,7 @@ namespace Pege.Streaming
                             CastedStatus.NextArtist = data.Artist;
                             CastedStatus.NextTrack = data.Title;
                             CastedStatus.NextFromFlac = data.FromFlac;
+                            UpdateIcyMetadata();
 
                             //Публикуем пост в Tg-канале
                             _ = SendCurrentTrackInfoToTgChannel();
@@ -119,6 +121,8 @@ namespace Pege.Streaming
                     CastedStatus.NextArtist = null;
                     CastedStatus.NextTrack = null;
                     CastedStatus.NextFromFlac = false;
+
+                    UpdateIcyMetadata();
                 }
             }
             catch { throw; }
@@ -130,6 +134,7 @@ namespace Pege.Streaming
                 CastedStatus.NextTrack = null;
                 CastedStatus.NextArtist = null;
                 CastedStatus.NextFromFlac = false;
+                UpdateIcyMetadata();
 
                 if (cancellationToken.IsCancellationRequested)
                     _log.Information(Message.BroadcastingStopped);
@@ -154,7 +159,7 @@ namespace Pege.Streaming
                     BroadcastChunk(new AudioChunk
                     {
                         Data = chunk,
-                        StreamMetadata = GenerateMetadataString().ToIcyMetadata()
+                        StreamMetadata = _currentIcyMetadata.Bytes
                     });
                 }
                 else
@@ -209,12 +214,6 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
                 _lockTgMessageId.Release();
             }
         }
-
-        /// <summary>
-        /// Метод генерации строки с метаданными.
-        /// </summary>
-        /// <returns></returns>
-        private string GenerateMetadataString() => $"StreamTitle='{CastedStatus.Artist} - {CastedStatus.Track}';NextTrack='{CastedStatus.NextArtist} - {CastedStatus.NextTrack}';FromFlac='{(CastedStatus.FromFlac ? "1" : "0")}';";
 
         /// <summary>
         /// Метод выбирает следующий случайный аудиофайл.
@@ -414,6 +413,31 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
 
             await tgService.SendMessageAsync(message.ToString(), Status.TelegramChannelId!);
         }
+
+        /// <summary>
+        /// Метод обновления ICY-метаданных.
+        /// </summary>
+        private void UpdateIcyMetadata()
+        {
+            string metaString = $"StreamTitle='{CastedStatus.Artist} - {CastedStatus.Track}';NextTrack='{CastedStatus.NextArtist} - {CastedStatus.NextTrack}';FromFlac='{(CastedStatus.FromFlac ? "1" : "0")}';";
+
+            if (_currentIcyMetadata.String == metaString)
+                return;
+
+            Interlocked.Exchange(ref _currentIcyMetadata, new IcyMetadata(metaString, metaString.ToIcyMetadata()));
+        }
+
+        /// <summary>
+        /// ICY-метаданные
+        /// </summary>
+        /// <param name="String">Строковое представление.</param>
+        /// <param name="Bytes">Массив байтов.</param>
+        private record IcyMetadata(string String, byte[]? Bytes);
+
+        /// <summary>
+        /// Текущее содержимое ICY-метаданных.
+        /// </summary>
+        private volatile IcyMetadata _currentIcyMetadata = new("", null);        
 
         /// <summary>
         /// Идентификаторы сообщений в telegram-канале о новых треках.
