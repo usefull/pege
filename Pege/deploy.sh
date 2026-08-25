@@ -90,9 +90,21 @@ ConsumerRate__9=900
 ConsumerRate__10=1000
 ConsumerRate__11=1100
 ConsumerRate__12=1200
-MeasuringPeriods__0=5
-MeasuringPeriods__1=10
-MeasuringPeriods__2=15
+ConsumerRate__13=1300
+ConsumerRate__14=1400
+ConsumerRate__15=1500
+ConsumerRate__16=1600
+ConsumerRate__17=1700
+ConsumerRate__18=1800
+ConsumerRate__19=1900
+ConsumerRate__20=2000
+ConsumerRate__21=2100
+ConsumerRate__22=2200
+ConsumerRate__23=2300
+ConsumerRate__24=2400
+ConsumerRate__25=2500
+MeasuringPeriods__0=10
+MeasuringPeriods__1=15
 ASPNETCORE_URLS=http://+:8080
 ENV_EOF
 

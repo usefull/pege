@@ -4,13 +4,13 @@ using Pege.Test.Core;
 var streamUrl = "http://185.250.180.248:8080/stream/_";
 //var streamUrl = "http://localhost:5088/stream/_";
 
-int[] consumerRate = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200];
-int[] periods = [5, 10, 15];
+int[] consumerRate = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000, 2100, 2200, 2300, 2400, 2500];
+int[] periods = [10, 15];
 
 var meter = new Meter();
 
 // Интервал в секундах между шагами.
-var interval = periods.Sum() + 15;
+var interval = periods.Sum() + 10;
 
 // Продолжительность теста в минутах при максимуме потребителей.
 var limitDuration = 60;
