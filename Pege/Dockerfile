@@ -5,6 +5,13 @@ USER $APP_UID
 WORKDIR /app
 EXPOSE 8080
 
+# Включаем Server GC
+ENV DOTNET_GCServer=1
+ENV DOTNET_GCHeapCount=2
+ENV DOTNET_GCAllowVeryLargeObjects=1
+ENV DOTNET_GCHeapHardLimitPercent=80
+ENV DOTNET_GCHeapHardLimit=0x80000000
+
 # Устанавливаем FFmpeg
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \

@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# Увеличь системные буферы на хостовой ОС:
+# >>> sudo nano /etc/sysctl.conf
+# Добавь строки:
+# net.core.rmem_max = 16777216
+# net.core.wmem_max = 16777216
+# net.ipv4.tcp_rmem = 4096 87380 16777216
+# net.ipv4.tcp_wmem = 4096 65536 16777216
+# Примени изменения:
+# >>> sudo sysctl -p
+
 # Останавливать скрипт при любых ошибках
 set -e
 
@@ -97,12 +107,6 @@ ConsumerRate__16=1600
 ConsumerRate__17=1700
 ConsumerRate__18=1800
 ConsumerRate__19=1900
-ConsumerRate__20=2000
-ConsumerRate__21=2100
-ConsumerRate__22=2200
-ConsumerRate__23=2300
-ConsumerRate__24=2400
-ConsumerRate__25=2500
 MeasuringPeriods__0=10
 MeasuringPeriods__1=15
 ASPNETCORE_URLS=http://+:8080
