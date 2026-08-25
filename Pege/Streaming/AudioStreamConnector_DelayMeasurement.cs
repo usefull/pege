@@ -41,7 +41,9 @@ namespace Pege.Streaming
         {
             _meters[0].MeasuringFinished -= MeasuringFinished;
             _ = Task.Run(async () =>
-        {
+            {
+                await Task.Delay(TimeSpan.FromSeconds(10));
+
                 var result = new StringBuilder("Label\tPeriod\tCount\tAvg\tMedian\tJitter\tP99\tMax\tStdDev\n");
                 var m = _meters.First(i => i.ReportItems.Count != 0);
                 result = m.ReportItems.Keys.Aggregate(result, (acc, label) =>

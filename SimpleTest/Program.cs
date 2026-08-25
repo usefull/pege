@@ -1,8 +1,8 @@
 ﻿
 using Pege.Test.Core;
 
-//var streamUrl = "http://185.250.180.248:8080/stream/_";
-var streamUrl = "http://localhost:5088/stream/_";
+var streamUrl = "http://185.250.180.248:8080/stream/_";
+//var streamUrl = "http://localhost:5088/stream/_";
 
 int[] consumerRate = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200];
 int[] periods = [5, 10, 15];
@@ -13,14 +13,16 @@ var meter = new Meter();
 var interval = periods.Sum() + 15;
 
 // Продолжительность теста в минутах при максимуме потребителей.
-var limitDuration = 2;
+var limitDuration = 60;
 
 var consumers = new List<ConsumerPretender>();
 
 var handler = new SocketsHttpHandler
 {
     MaxConnectionsPerServer = int.MaxValue,
-    PooledConnectionLifetime = TimeSpan.FromMinutes(5)
+    PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+    MaxResponseHeadersLength = 100, // 100 КБ
+    MaxResponseDrainSize = 1024 * 1024, // 1 МБ
 };
 var httpClient = new HttpClient(handler)
 {
