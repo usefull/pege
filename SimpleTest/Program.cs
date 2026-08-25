@@ -1,8 +1,8 @@
 ﻿
 using Pege.Test.Core;
 
-var streamUrl = "http://185.250.180.248:8080/stream/_";
-//var streamUrl = "http://localhost:5088/stream/_";
+//var streamUrl = "http://185.250.180.248:8080/stream/_";
+var streamUrl = "http://localhost:5088/stream/_";
 
 int[] consumerRate = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200];
 int[] periods = [5, 10, 15];
