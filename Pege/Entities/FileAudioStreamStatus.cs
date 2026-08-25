@@ -42,7 +42,7 @@ namespace Pege.Entities
         /// <summary>
         /// Признак того, что следующий трек получен перекодировкой из FLAC.
         /// </summary>
-        public bool NextFromFlack { get; set; }
+        public bool NextFromFlac { get; set; }
 
         public override void FromDescription(StreamDescriptor streamDescriptor)
         {

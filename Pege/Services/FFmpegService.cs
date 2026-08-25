@@ -132,7 +132,7 @@ namespace Pege.Services
                 Title = Path.GetFileNameWithoutExtension(filePath)
             };
 
-            string arguments = $"-v error -select_streams a -show_entries stream=sample_rate:packet=duration:stream=codec_name:format=duration:format_tags=artist,title -read_intervals %+1 -of ini \"{filePath}\"";
+            string arguments = $"-v error -select_streams a -show_entries stream=sample_rate:packet=duration:stream=codec_name:format=duration:format_tags=artist,title,comment -read_intervals %+1 -of ini \"{filePath}\"";
 
             using var process = new Process
             {

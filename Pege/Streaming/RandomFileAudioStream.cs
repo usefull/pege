@@ -89,42 +89,47 @@ namespace Pege.Streaming
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    // Асинхронно начинаем загружать следующий трек (параллельно с воспроизведением текущего)
-
                     var loadNextTask = Task.Run(
+                        // Параллельно начинаем готовить следующий трек
                         async () =>
                         {
                             var data = await GetNextTrackAsync(cancellationToken);
                             CastedStatus.NextArtist = data.Artist;
                             CastedStatus.NextTrack = data.Title;
-                            CastedStatus.NextFromFlack = data.FromFlac;
+                            CastedStatus.NextFromFlac = data.FromFlac;
+
+                            //Публикуем пост в Tg-канале
+                            _ = SendCurrentTrackInfoToTgChannel();
+
                             return data;
                         },
                         cancellationToken
-                    );
+                    );                
 
-                    //Публикуем пост в Tg-канале
-                    _ = SendCurrentTrackInfoToTgChannel();
-
-                    //    // Отправляем текущий трек клиентам
+                    // Отправляем текущий трек клиентам
                     await BroadcastTrackAsync(trackData, cancellationToken);
 
-                    // Ждем загрузки следующего трека
+                    // Ждем окончания подготовки следующего трека
                     trackData = await loadNextTask;
 
                     CastedStatus.Artist = CastedStatus.NextArtist;
                     CastedStatus.Track = CastedStatus.NextTrack;
+                    CastedStatus.FromFlac = CastedStatus.NextFromFlac;
 
                     CastedStatus.NextArtist = null;
                     CastedStatus.NextTrack = null;
-                    CastedStatus.NextFromFlack = false;
+                    CastedStatus.NextFromFlac = false;
                 }
             }
             catch { throw; }
             finally
             {
+                CastedStatus.Track = null;
+                CastedStatus.Artist = null;
+                CastedStatus.FromFlac = false;
                 CastedStatus.NextTrack = null;
                 CastedStatus.NextArtist = null;
+                CastedStatus.NextFromFlac = false;
 
                 if (cancellationToken.IsCancellationRequested)
                     _log.Information(Message.BroadcastingStopped);
@@ -146,6 +151,8 @@ namespace Pege.Streaming
             {
                 if (trackData.Chunks.TryDequeue(out var chunk))
                 {
+                    _log.Information(GenerateMetadataString());
+
                     BroadcastChunk(new AudioChunk
                     {
                         Data = chunk,
@@ -209,7 +216,7 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
         /// Метод генерации строки с метаданными.
         /// </summary>
         /// <returns></returns>
-        private string GenerateMetadataString() => $"StreamTitle='{CastedStatus.Artist} - {CastedStatus.Track}';NextTrack='{CastedStatus.NextArtist} - {CastedStatus.NextTrack}';";
+        private string GenerateMetadataString() => $"StreamTitle='{CastedStatus.Artist} - {CastedStatus.Track}';NextTrack='{CastedStatus.NextArtist} - {CastedStatus.NextTrack}';FromFlac='{(CastedStatus.FromFlac ? "1" : "0")}';";
 
         /// <summary>
         /// Метод выбирает следующий случайный аудиофайл.
