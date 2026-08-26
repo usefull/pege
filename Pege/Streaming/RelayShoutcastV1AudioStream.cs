@@ -79,17 +79,11 @@ namespace Pege.Streaming
                 throw new HttpRequestException(string.Format(Error.ShoutCastProtocolError, headerLines.Length > 0 ? headerLines[0] : Message.EmptyResponse));
             }
 
-            int bitrate = 192;
             var metaInterval = 0;
 
             foreach (var line in headerLines)
             {
-                if (line.StartsWith("icy-br:", StringComparison.OrdinalIgnoreCase))
-                {
-                    if (int.TryParse(line[7..].Trim(), out int br))
-                        bitrate = br;
-                }
-                else if (line.StartsWith("Content-Type:", StringComparison.OrdinalIgnoreCase))
+                if (line.StartsWith("Content-Type:", StringComparison.OrdinalIgnoreCase))
                 {
                     CastedStatus.ContentType = line[13..].Trim();
                 }
@@ -99,7 +93,7 @@ namespace Pege.Streaming
                 }
             }
 
-            await RelayCycleAsync(networkStream, 8192, StreamReadTimeout, bitrate, metaInterval, cancellationToken);
+            await RelayCycleAsync(networkStream, 8192, StreamReadTimeout, metaInterval, cancellationToken);
         }
 
         private static readonly TimeSpan StreamReadTimeout = TimeSpan.FromSeconds(15);

@@ -53,7 +53,7 @@ namespace Pege.Entities
 
         protected override StreamInfo CreateInfo() => new FileAudioStreamInfo
         {
-            Path = Path
+            Path = Path!
         };
     }
 }

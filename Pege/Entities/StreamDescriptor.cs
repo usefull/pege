@@ -86,7 +86,7 @@ namespace Pege.Entities
 
         public StreamStatus ToStatus()
         {
-            Type statusType = null;
+            Type? statusType = null;
             var streamType = Type.GetType($"Pege.Streaming.{ImplType}");
             while (streamType != null && streamType != typeof(object))
             {

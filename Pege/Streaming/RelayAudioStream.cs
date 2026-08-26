@@ -6,7 +6,7 @@ namespace Pege.Streaming
     internal class RelayAudioStream(RelayAudioStreamStatus status, IServiceProvider serviceProvider) : BaseRelayAudioStream(status, serviceProvider)
     {
         private static readonly HttpClient _httpClient;
-        private const int DefaultBitrate = 192;
+        //private const int DefaultBitrate = 192;
         private const int BufferSize = 8192;
         private static readonly TimeSpan StreamReadTimeout = TimeSpan.FromSeconds(15);
 
@@ -59,20 +59,13 @@ namespace Pege.Streaming
 
             CastedStatus.ContentType = response.Content.Headers.ContentType?.MediaType ?? "audio/mpeg";
 
-            int bitrate = DefaultBitrate;
-            if (response.Headers.TryGetValues("icy-br", out var brValues) || response.Headers.TryGetValues("X-Audio-Bitrate", out brValues))
-            {
-                if (int.TryParse(brValues.FirstOrDefault(), out int br))
-                    bitrate = br;
-            }
-
             int metaInterval = 0;
             if (response.Headers.TryGetValues("icy-metaint", out var strMetaInt))
                 _ = int.TryParse(strMetaInt?.FirstOrDefault(), out metaInterval);
 
             using var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken);
 
-            await RelayCycleAsync(responseStream, BufferSize, StreamReadTimeout, bitrate, metaInterval, cancellationToken);
+            await RelayCycleAsync(responseStream, BufferSize, StreamReadTimeout, metaInterval, cancellationToken);
         }
     }
 }

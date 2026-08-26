@@ -28,14 +28,12 @@ namespace Pege.Streaming
         /// <param name="networkStream">Сетевой источник ретранслируемых данных.</param>
         /// <param name="bufferSize">Размер буфера.</param>
         /// <param name="streamReadTimeout">Таймаут чтения источника.</param>
-        /// <param name="bitrate">Битрейт аудио.</param>
         /// <param name="metaInterval">Интервал между блоками металанных.</param>
         /// <param name="cancellationToken">Токен отмены ретрансляции.</param>
         /// <returns></returns>
-        protected virtual async Task RelayCycleAsync(Stream networkStream, int bufferSize, TimeSpan streamReadTimeout, int bitrate, int metaInterval, CancellationToken cancellationToken)
+        protected virtual async Task RelayCycleAsync(Stream networkStream, int bufferSize, TimeSpan streamReadTimeout, int metaInterval, CancellationToken cancellationToken)
         {
             var networkBuffer = ArrayPool<byte>.Shared.Rent(bufferSize);
-            var bytesPerMs = bitrate / 8.0;
 
             byte[]? metadata = null;
 

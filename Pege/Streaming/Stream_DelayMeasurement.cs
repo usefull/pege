@@ -57,17 +57,17 @@ namespace Pege.Streaming
         /// <summary>
         /// Шаги приращения количества потребителей стрима.
         /// </summary>
-        private readonly int[] _consumerRate = serviceProvider.GetService<IConfiguration>().GetSection("ConsumerRate").Get<int[]>();
+        private readonly int[] _consumerRate = serviceProvider.GetService<IConfiguration>()?.GetSection("ConsumerRate").Get<int[]>() ?? [];
 
         /// <summary>
         /// Периоды измерегний внутри одной эпохи.
         /// </summary>
-        private readonly int[] _periods = serviceProvider.GetService<IConfiguration>().GetSection("MeasuringPeriods").Get<int[]>();
+        private readonly int[] _periods = serviceProvider.GetService<IConfiguration>()?.GetSection("MeasuringPeriods").Get<int[]>() ?? [];
 
         /// <summary>
         /// Флаг, указывающий на то, что стрим в режиме измерения.
         /// </summary>
-        private readonly bool _delayMeasurementMode = serviceProvider.GetService<IConfiguration>().GetSection("DelayMeasurementMode").Get<bool>();
+        private readonly bool _delayMeasurementMode = serviceProvider.GetService<IConfiguration>()?.GetSection("DelayMeasurementMode").Get<bool>() ?? false;
 
         /// <summary>
         /// Счётчик эпох измерения.

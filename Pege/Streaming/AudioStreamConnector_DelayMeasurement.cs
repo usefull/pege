@@ -20,11 +20,11 @@ namespace Pege.Streaming
                     _meters.Add(_meter);
                 }
 
-                if (_consumerCount > consumerRate[_measureStage] && _consumerCount >= 50 && _measureStage < consumerRate.Length - 1)
+                if (_consumerCount > consumerRate![_measureStage] && _consumerCount >= 50 && _measureStage < consumerRate.Length - 1)
                 {
                     _measureStage++;
                     foreach (var meter in _meters)
-                        meter.StartMeasuring(consumerRate[_measureStage].ToString(), [.. periods.Select(p => TimeSpan.FromSeconds(p))]);
+                        meter.StartMeasuring(consumerRate[_measureStage].ToString(), [.. periods!.Select(p => TimeSpan.FromSeconds(p))]);
 
                     _log.Information($"{consumerRate[_measureStage]}: measuring epoch started");
 

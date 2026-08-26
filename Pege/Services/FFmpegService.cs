@@ -85,7 +85,7 @@ namespace Pege.Services
                     
                     var directory = Path.GetDirectoryName(filePath);
                     var fileName = $"{Path.GetFileNameWithoutExtension(filePath)}.m4a";
-                    string targetPath = Path.Combine(directory, fileName);
+                    string targetPath = Path.Combine(directory!, fileName);
                     result.Filename = targetPath;
 
                     try { File.Delete(filePath); } catch { }

@@ -154,7 +154,7 @@ namespace Pege.Streaming
 
             do
             {
-                if (trackData.Chunks.TryDequeue(out var chunk))
+                if (trackData.Chunks?.TryDequeue(out var chunk) ?? false)
                 {
                     BroadcastChunk(new AudioChunk
                     {
