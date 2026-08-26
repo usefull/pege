@@ -95,8 +95,6 @@ namespace Pege.Streaming
                                         networkBuffer.AsSpan(bufferPos, metaInterval - bytesAfterMetadata).CopyTo(buff);
                                         BroadcastChunk(new AudioChunk{
                                             Data = buff,
-                                            BitrateKbps = bitrate,
-                                            DurationMs = (int)(bytesRead / bytesPerMs),
                                             StreamMetadata = GenerateMetadataString().ToIcyMetadata()
                                         });
                                     }
@@ -124,8 +122,6 @@ namespace Pege.Streaming
                                     BroadcastChunk(new AudioChunk
                                     {
                                         Data = buff,
-                                        BitrateKbps = bitrate,
-                                        DurationMs = (int)(bytesRead / bytesPerMs),
                                         StreamMetadata = GenerateMetadataString().ToIcyMetadata()
                                     });
 
@@ -146,8 +142,6 @@ namespace Pege.Streaming
                         BroadcastChunk(new AudioChunk
                         {
                             Data = dedicatedBuffer,
-                            BitrateKbps = bitrate,
-                            DurationMs = (int)(bytesRead / bytesPerMs),
                             StreamMetadata = GenerateMetadataString().ToIcyMetadata()
                         });
                     }

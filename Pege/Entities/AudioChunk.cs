@@ -1,11 +1,13 @@
 ﻿namespace Pege.Entities
 {
+    /// <summary>
+    /// Порция аудиоданных.
+    /// </summary>
     public class AudioChunk() : Chunk
     {
-        public int BitrateKbps { get; set; }
-
-        public int DurationMs { get; set; }
-
+        /// <summary>
+        /// ICY-метаданные.
+        /// </summary>
         public byte[]? StreamMetadata { get; set; }
     }
 }
