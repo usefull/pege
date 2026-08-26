@@ -45,7 +45,7 @@ namespace Pege.Services
 
                     var fromFlac = result.Codec == "flac" ? "-metadata comment=\"from FLAC\"" : string.Empty;
 
-                    string arguments = $"-i \"{filePath}\" -ar {targetSampleRate} -af loudnorm=I=-18:TP=-1.5:linear=true -c:a libfdk_aac -vbr 5 -vn -movflags +faststart {fromFlac} \"{tempOutput}\"";
+                    string arguments = $"-i \"{filePath}\" -ar {targetSampleRate} -af loudnorm=I=-18:TP=-1.5:linear=true -c:a libfdk_aac -vbr 4 -vn -movflags +faststart {fromFlac} \"{tempOutput}\"";
                     using var process = new Process
                     {
                         StartInfo = new ProcessStartInfo
