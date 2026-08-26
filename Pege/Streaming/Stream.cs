@@ -9,7 +9,7 @@ namespace Pege.Streaming
 {
     internal abstract partial class Stream<TStatus, TChunk>(TStatus status, IServiceProvider serviceProvider) : IStream
         where TStatus : StreamStatus, new()
-        where TChunk : Chunk, new()
+        where TChunk : struct, IChunk
     {
         public void Start()
         {
@@ -67,7 +67,7 @@ namespace Pege.Streaming
             }
         }
 
-        public (ChannelReader<Chunk> Reader, Guid SessionId) Subscribe()
+        public (ChannelReader<IChunk> Reader, Guid SessionId) Subscribe()
         {
             var channel = CreateChannel();
             var sessionId = Guid.NewGuid();
@@ -96,7 +96,7 @@ namespace Pege.Streaming
             }
         }
 
-        protected void BroadcastChunk(Chunk chunk)
+        protected void BroadcastChunk(IChunk chunk)
         {
             lock (_lock)
             {
@@ -122,7 +122,7 @@ namespace Pege.Streaming
 
         protected abstract Task BroadcastCycleAsync(CancellationToken cancellationToken);
 
-        protected virtual Channel<Chunk> CreateChannel() => Channel.CreateBounded<Chunk>(new BoundedChannelOptions(30)
+        protected virtual Channel<IChunk> CreateChannel() => Channel.CreateBounded<IChunk>(new BoundedChannelOptions(30)
         {
             FullMode = BoundedChannelFullMode.DropOldest,
             SingleReader = true,

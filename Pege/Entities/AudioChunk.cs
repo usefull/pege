@@ -1,13 +1,14 @@
-﻿namespace Pege.Entities
+﻿using Pege.Interfaces;
+
+namespace Pege.Entities
 {
     /// <summary>
     /// Порция аудиоданных.
     /// </summary>
-    public class AudioChunk() : Chunk
+    public readonly struct AudioChunk : IChunk
     {
-        /// <summary>
-        /// ICY-метаданные.
-        /// </summary>
-        public byte[]? StreamMetadata { get; set; }
+        public ReadOnlyMemory<byte> Data { get; init; }
+
+        public byte[]? StreamMetadata { get; init; }
     }
 }

@@ -156,9 +156,11 @@ namespace Pege.Streaming
             {
                 if (trackData.Chunks?.TryDequeue(out var chunk) ?? false)
                 {
-                    _chunkBuffer.Data = chunk;
-                    _chunkBuffer.StreamMetadata = _currentIcyMetadata.Bytes;
-                    BroadcastChunk(_chunkBuffer);
+                    BroadcastChunk(new AudioChunk
+                    {
+                        Data = chunk,
+                        StreamMetadata = _currentIcyMetadata.Bytes
+                    });
                 }
                 else
                     break;

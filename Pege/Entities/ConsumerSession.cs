@@ -1,13 +1,14 @@
-﻿using System.Threading.Channels;
+﻿using Pege.Interfaces;
+using System.Threading.Channels;
 
 namespace Pege.Entities
 {
-    internal class ConsumerSession(Guid id, ChannelWriter<Chunk> writer, ChannelReader<Chunk> reader)
+    internal class ConsumerSession(Guid id, ChannelWriter<IChunk> writer, ChannelReader<IChunk> reader)
     {
         public readonly Guid Id = id;
 
-        public readonly ChannelWriter<Chunk> Writer = writer;
+        public readonly ChannelWriter<IChunk> Writer = writer;
 
-        public readonly ChannelReader<Chunk> Reader = reader;
+        public readonly ChannelReader<IChunk> Reader = reader;
     }
 }
