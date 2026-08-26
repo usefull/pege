@@ -156,11 +156,9 @@ namespace Pege.Streaming
             {
                 if (trackData.Chunks?.TryDequeue(out var chunk) ?? false)
                 {
-                    BroadcastChunk(new AudioChunk
-                    {
-                        Data = chunk,
-                        StreamMetadata = _currentIcyMetadata.Bytes
-                    });
+                    _chunkBuffer.Data = chunk;
+                    _chunkBuffer.StreamMetadata = _currentIcyMetadata.Bytes;
+                    BroadcastChunk(_chunkBuffer);
                 }
                 else
                     break;
@@ -460,11 +458,32 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
         /// </summary>
         private readonly List<string> _history = [];
 
+        /// <summary>
+        /// Генератор псевдослучайных чисел для выбора следующего трека.
+        /// </summary>
         private readonly Random _random = new();
+
+        /// <summary>
+        /// Частота дискретизации потока.
+        /// </summary>
         private readonly int _targetSamplerate = 44100;
+
+        /// <summary>
+        /// Количество аудио-фреймов в одной порции транслируемых данных.
+        /// </summary>
         private readonly int _framesPerChunk = 15;
 
+        /// <summary>
+        /// Переиспользуемый буфер трансляции.
+        /// </summary>
+        private readonly AudioChunk _chunkBuffer = new();
+
+        /// <summary>
+        /// регулярное выражение для нормализации пробельных символов.
+        /// </summary>
+        /// <returns></returns>
         [GeneratedRegex(@"\s+")]
         private static partial Regex SpaceRegex();
+
     }
 }

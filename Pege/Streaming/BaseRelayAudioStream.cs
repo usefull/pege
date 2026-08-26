@@ -91,7 +91,8 @@ namespace Pege.Streaming
 
                                         byte[] buff = GC.AllocateUninitializedArray<byte>(metaInterval - bytesAfterMetadata);
                                         networkBuffer.AsSpan(bufferPos, metaInterval - bytesAfterMetadata).CopyTo(buff);
-                                        BroadcastChunk(new AudioChunk{
+                                        BroadcastChunk(new AudioChunk
+                                        {
                                             Data = buff,
                                             StreamMetadata = GenerateMetadataString().ToIcyMetadata()
                                         });
@@ -103,7 +104,6 @@ namespace Pege.Streaming
                                     if (metadataLength == 0)
                                     {
                                         bytesAfterMetadata = 0;
-                                        //log.Information("Пустой блок метаданных");
                                     }
                                     else
                                     {
@@ -136,7 +136,6 @@ namespace Pege.Streaming
 
                         // Быстрое копирование через Span
                         networkBuffer.AsSpan(0, bytesRead).CopyTo(dedicatedBuffer);
-
                         BroadcastChunk(new AudioChunk
                         {
                             Data = dedicatedBuffer,
@@ -222,6 +221,5 @@ namespace Pege.Streaming
                 return $"StreamTitle='{CastedStatus.Artist} - {CastedStatus.Track}';";
             }
         }
-            
     }
 }
