@@ -85,7 +85,7 @@ namespace Pege.Streaming
 
                         if (bytesSentInCurrentInterval + bytesToWrite == IcyMetaInterval)
                         {
-                            if (pendingMetadata != null && !pendingMetadata.AsSpan().SequenceEqual(currentMetadata ?? ReadOnlySpan<byte>.Empty))
+                            if (pendingMetadata != null && !pendingMetadata.SequenceEqual(currentMetadata ?? ReadOnlySpan<byte>.Empty))
                             {
                                 currentMetadata = pendingMetadata;
                                 await httpResponse.Body.WriteAsync(currentMetadata, cancellationToken);
