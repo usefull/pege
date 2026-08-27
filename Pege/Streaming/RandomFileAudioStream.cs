@@ -1,5 +1,4 @@
-﻿
-using Microsoft.AspNetCore.WebUtilities;
+﻿using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Net.Http.Headers;
 using Pege.Entities;
 using Pege.Extensions;
@@ -280,7 +279,7 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
         /// <summary>
         /// Метод удаления трека из плейлиста.
         /// </summary>
-        /// <param name="fileName">Имя файла.</param>
+        /// <param name="fileName">Имя файла (можно без расширения, будут удалены все файлы, найденные по имени до точки расширения).</param>
         /// <exception cref="ApplicationException">В случае, если каталог плейлиста не существует.</exception>
         /// <exception cref="FileNotFoundException">В случае, если файл не найден в плейлисте.</exception>
         public async Task DeleteTrackAsync(string fileName)
@@ -288,15 +287,16 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
             if (!Path.Exists(CastedStatus.Path))
                 throw new ApplicationException(Error.DirectoryDoesNotExist);
 
-            var path = Path.Combine(CastedStatus.Path!, fileName);
+            var name = Path.GetFileNameWithoutExtension(fileName);
+            var files = Directory.GetFiles(CastedStatus.Path, $"{name}.*");
 
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-                _ = UpdateTotalTracksAndDurationAsync();
-            }
-            else
+            if (files.Length == 0)
                 throw new FileNotFoundException();
+
+            foreach (var file in files )
+                File.Delete(file);
+
+            _ = UpdateTotalTracksAndDurationAsync();
         }
 
         /// <summary>
@@ -304,6 +304,7 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
         /// </summary>
         /// <param name="reader">Содержимое http-запроса.</param>
         /// <param name="quietly">Флаг предписывает не публиковать в Telegram-канале информации о новых треках.</param>
+        /// <param name="replace">Флаг предписывает перезаписывать существующие треки.</param>
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Результаты загрузки.</returns>
         /// <exception cref="ApplicationException">В случаях ошибок чтения содержимого запроса, а так же если файл уже есть в плейлисте или каталог не существует.</exception>
@@ -490,16 +491,10 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
         private readonly int _framesPerChunk = 15;
 
         /// <summary>
-        /// Переиспользуемый буфер трансляции.
-        /// </summary>
-        private readonly AudioChunk _chunkBuffer = new();
-
-        /// <summary>
         /// регулярное выражение для нормализации пробельных символов.
         /// </summary>
         /// <returns></returns>
         [GeneratedRegex(@"\s+")]
         private static partial Regex SpaceRegex();
-
     }
 }
