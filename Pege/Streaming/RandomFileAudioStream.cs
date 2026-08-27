@@ -307,24 +307,26 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
         /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Результаты загрузки.</returns>
         /// <exception cref="ApplicationException">В случаях ошибок чтения содержимого запроса, а так же если файл уже есть в плейлисте или каталог не существует.</exception>
-        public async Task<UploadResult> UploadAsync(MultipartReader reader, bool quietly, CancellationToken cancellationToken)
+        public async Task<UploadResult> UploadAsync(MultipartReader reader, bool quietly, bool replace, CancellationToken cancellationToken)
         {
             var result = new UploadResult();
             string? currentFileName = null;
+            FileUploadResult? fileResult = null;
 
             var allFiles = Directory.GetFiles(CastedStatus.Path!, "*.*")
-                .Select(f => Path.GetFileNameWithoutExtension(f))
+                .Select(f => new { Title = Path.GetFileNameWithoutExtension(f), Filename = f })
                 .ToList();
 
             do
             {
+                // Изначально в качестве имени берём порядковый индекс файла
+                // на случай, если не получится найти файл в теле запроса,
+                // а ошибку в результат под каким-то именем файла записать нужно.
+                currentFileName = result.TotalUploaded.ToString();
+                fileResult = new FileUploadResult();
+
                 try
                 {
-                    // Изначально в качестве имени берём порядковый индекс файла
-                    // на случай, если не получится найти файл в теле запроса,
-                    // а ошибку в результат под каким-то именем файла записать нужно.
-                    currentFileName = result.TotalUploaded.ToString();
-
                     var section = await reader.ReadNextSectionAsync(cancellationToken);
                     if (section == null) break;
 
@@ -346,8 +348,19 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
                         var name = SpaceRegex().Replace(Path.GetFileNameWithoutExtension(currentFileName), " ").Trim();
                         var ext = Path.GetExtension(currentFileName);
                         currentFileName = $"{name}{ext}";
-                        if (allFiles.Contains(name))
-                            throw new ApplicationException(string.Format(Error.FileAlreadyExists, currentFileName));
+
+                        var existing = allFiles.Where(f => f.Title == name);
+                        if (existing.Any())
+                        {
+                            fileResult.Replaced = true;
+                            if (replace)
+                            {
+                                foreach (var exist in existing)
+                                    File.Delete(exist.Filename);
+                            }
+                            else
+                                throw new ApplicationException(string.Format(Error.FileAlreadyExists, currentFileName));
+                        }
 
                         var filename = Path.Combine(CastedStatus.Path, currentFileName);                            
 
@@ -356,17 +369,18 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
                         await section.Body.CopyToAsync(targetStream, cancellationToken);
 
                         result.TotalUploaded++;
-                        result.Errors.Add(currentFileName, null);
                     }
                     else
                     {
-                        result.Errors.Add(currentFileName, Error.FileContentDispositionNotFound);
+                        fileResult.Error = Error.FileContentDispositionNotFound;
                     }
                 }
                 catch (Exception ex)
                 {
-                    result.Errors.Add(currentFileName!, ex.Message);
+                    fileResult.Error = ex.Message;
                 }
+
+                result.Files.Add(currentFileName!, fileResult);
             }
             while (true);
 
@@ -377,7 +391,7 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
                 updateStatusTask?.ContinueWith(async task =>
                 {
                     var newFilesInfo = task.Result.IntersectBy(
-                        result.Errors.Where(i => i.Value == null).Select(i => i.Key),
+                        result.Files.Where(i => i.Value.Error == null && !i.Value.Replaced).Select(i => i.Key),
                         i => Path.GetFileName(i.Filename)).ToList();
 
                     await SendNewTracksInfoToTgChannel(newFilesInfo);

@@ -4,7 +4,7 @@ using Pege.Test.Core;
 var streamUrl = "http://185.250.180.248:8080/stream/_";
 //var streamUrl = "http://localhost:5088/stream/_";
 
-int[] consumerRate = [0, 500, 550, 600, 650, 700, 750, 800, 850, 900, 950, 1000, 1050, 1100, 1150, 1200];
+int[] consumerRate = [0, 500, 550, 600, 650, 700, 750, 800, 850, 900, 950, 1000, 1050, 1100, 1150];
 int[] periods = [10, 15];
 
 var meter = new Meter();
