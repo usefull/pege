@@ -19,7 +19,7 @@ namespace Pege.Interfaces
         /// Метод подключения к стриму.
         /// </summary>
         /// <returns>Канал для получения данных стрима и идентификатор сессии.</returns>
-        (ChannelReader<IChunk> Reader, Guid SessionId) Subscribe();
+        (ChannelReader<Chunk> Reader, Guid SessionId) Subscribe();
 
         /// <summary>
         /// Метод отключения от стрима.

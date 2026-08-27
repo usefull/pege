@@ -9,7 +9,7 @@ namespace Pege.Streaming
     /// </summary>
     internal abstract partial class Stream<TStatus, TChunk> : IStream
         where TStatus : StreamStatus, new()
-        where TChunk : struct, IChunk
+        where TChunk : Chunk, new()
     {
         /// <summary>
         /// Метод запуска очередной эпохи измерения.

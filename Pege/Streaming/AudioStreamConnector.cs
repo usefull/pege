@@ -55,16 +55,22 @@ namespace Pege.Streaming
 
             try
             {
-                await httpResponse.Body.FlushAsync(cancellationToken);
+                using var timeoutCts0 = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+                using var linkedCts0 = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts0.Token);
+
+                await httpResponse.Body.FlushAsync(linkedCts0.Token);
 
                 await foreach (var chunk in reader.ReadAllAsync(cancellationToken).Cast<AudioChunk>())
                 {
+                    using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+                    using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+
                     byte[]? pendingMetadata = chunk.StreamMetadata;
                     if (!supportIcy)
                     {
                         var ts = Stopwatch.GetTimestamp();
 
-                        await httpResponse.Body.WriteAsync(chunk.Data, cancellationToken);
+                        await httpResponse.Body.WriteAsync(chunk.Data, linkedCts.Token);
 
                         if (_delayMeasurementMode)
                         {
@@ -82,18 +88,18 @@ namespace Pege.Streaming
                         int bytesLeftInInterval = IcyMetaInterval - bytesSentInCurrentInterval;
                         int bytesToWrite = Math.Min(audioData.Length, bytesLeftInInterval);
 
-                        await httpResponse.Body.WriteAsync(audioData[..bytesToWrite], cancellationToken);
+                        await httpResponse.Body.WriteAsync(audioData[..bytesToWrite], linkedCts.Token);
 
                         if (bytesSentInCurrentInterval + bytesToWrite == IcyMetaInterval)
                         {
                             if (pendingMetadata != null && !pendingMetadata.SequenceEqual(currentMetadata ?? ReadOnlySpan<byte>.Empty))
                             {
                                 currentMetadata = pendingMetadata;
-                                await httpResponse.Body.WriteAsync(currentMetadata, cancellationToken);
+                                await httpResponse.Body.WriteAsync(currentMetadata, linkedCts.Token);
                             }
                             else
                             {
-                                await httpResponse.Body.WriteAsync(EmptyMetaBlock, cancellationToken);
+                                await httpResponse.Body.WriteAsync(EmptyMetaBlock, linkedCts.Token);
                             }
 
                             bytesSentInCurrentInterval = 0;
