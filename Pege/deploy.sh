@@ -102,8 +102,8 @@ ConsumerRate__20=2000
 ConsumerRate__21=2100
 ConsumerRate__22=2200
 ConsumerRate__23=2300
-MeasuringPeriods__0=10
-MeasuringPeriods__1=15
+ConsumerRate__24=2400
+MeasuringPeriods__0=20
 ASPNETCORE_URLS=http://+:8080
 ENV_EOF
 

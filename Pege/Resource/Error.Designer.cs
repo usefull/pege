@@ -71,15 +71,6 @@ namespace Pege.Resource {
         }
         
         /// <summary>
-        ///   Ищет локализованную строку, похожую на Audio rate reading error for file: {0}. Reason: {1}.
-        /// </summary>
-        internal static string AudioRateReadingError {
-            get {
-                return ResourceManager.GetString("AudioRateReadingError", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Ищет локализованную строку, похожую на The error occured while handling the bot command {0}. Reason: {1}.
         /// </summary>
         internal static string BotCommandHandlingError {
@@ -94,15 +85,6 @@ namespace Pege.Resource {
         internal static string BoundaryLengthExceeded {
             get {
                 return ResourceManager.GetString("BoundaryLengthExceeded", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Ищет локализованную строку, похожую на Codec name reading error for file: {0}. Reason: {1}.
-        /// </summary>
-        internal static string CodecNameReadingError {
-            get {
-                return ResourceManager.GetString("CodecNameReadingError", resourceCulture);
             }
         }
         
@@ -134,39 +116,12 @@ namespace Pege.Resource {
         }
         
         /// <summary>
-        ///   Ищет локализованную строку, похожую на FFmpeg not found. Make sure FFmpeg is installed and in PATH..
-        /// </summary>
-        internal static string FFmpegNotFound {
-            get {
-                return ResourceManager.GetString("FFmpegNotFound", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Ищет локализованную строку, похожую на FFmpeg did not create output file.
         ///Input file: {0}.
         /// </summary>
         internal static string FFmpegOutputError {
             get {
                 return ResourceManager.GetString("FFmpegOutputError", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Ищет локализованную строку, похожую на FFprobe error: {0}..
-        /// </summary>
-        internal static string FFprobeError {
-            get {
-                return ResourceManager.GetString("FFprobeError", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Ищет локализованную строку, похожую на FFprobe not found. Make sure FFprobe is installed and in PATH..
-        /// </summary>
-        internal static string FFprobeNotFound {
-            get {
-                return ResourceManager.GetString("FFprobeNotFound", resourceCulture);
             }
         }
         
@@ -221,15 +176,6 @@ namespace Pege.Resource {
         internal static string InvalidStreamId {
             get {
                 return ResourceManager.GetString("InvalidStreamId", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Ищет локализованную строку, похожую на Metadata reading error for file: {0}. Reason: {1}.
-        /// </summary>
-        internal static string MetadataReadingError {
-            get {
-                return ResourceManager.GetString("MetadataReadingError", resourceCulture);
             }
         }
         
@@ -451,11 +397,11 @@ namespace Pege.Resource {
         }
         
         /// <summary>
-        ///   Ищет локализованную строку, похожую на Unable define frame size.
+        ///   Ищет локализованную строку, похожую на Unable read audio frame size from file: {0}.
         /// </summary>
-        internal static string UnableDefineSamplesPerFrame {
+        internal static string UnableReadSamplesPerFrame {
             get {
-                return ResourceManager.GetString("UnableDefineSamplesPerFrame", resourceCulture);
+                return ResourceManager.GetString("UnableReadSamplesPerFrame", resourceCulture);
             }
         }
         
@@ -465,15 +411,6 @@ namespace Pege.Resource {
         internal static string UnableReadUploadedFileName {
             get {
                 return ResourceManager.GetString("UnableReadUploadedFileName", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Ищет локализованную строку, похожую на File has an invalid extension. Only .mp3 or .acc is allowed..
-        /// </summary>
-        internal static string UnacceptableFileExtension {
-            get {
-                return ResourceManager.GetString("UnacceptableFileExtension", resourceCulture);
             }
         }
         

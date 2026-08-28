@@ -1,18 +1,13 @@
-﻿
-using Pege.Entities;
+﻿using Pege.Entities;
 using Pege.Resource;
 using System.Diagnostics;
-using System.Globalization;
 using System.Text;
 
 namespace Pege.Services
 {
     /// <summary>
-    /// Сервис FFmpeg для работы с медиафайлами.
+    /// Сервис для работы с медиафайлами.
     /// </summary>
-    /// <remarks>
-    /// Конструктор.
-    /// </remarks>
     internal class FFmpegService()
     {
         /// <summary>
@@ -31,7 +26,7 @@ namespace Pege.Services
 
             try
             {
-                var result = await GetTrackMetadataAsync(filePath, cancellationToken);
+                var result = GetTrackMetadata(filePath);
 
                 ReadOnlyMemory<byte> trackBytes;
 
@@ -78,7 +73,7 @@ namespace Pege.Services
                     if (process.ExitCode != 0) throw new Exception(errorBuilder.ToString());
                     if (!File.Exists(tempOutput)) throw new Exception(string.Format(Error.FFmpegOutputError, filePath));
 
-                    result = await GetTrackMetadataAsync(tempOutput, cancellationToken);
+                    result = GetTrackMetadata(tempOutput);
 
                     trackBytes = await File.ReadAllBytesAsync(tempOutput, cancellationToken);
                     if (trackBytes.Length == 0) throw new Exception(string.Format(Error.FFmpegOutputError, filePath));
@@ -119,114 +114,127 @@ namespace Pege.Services
         /// Метод читает метаданные трека.
         /// </summary>
         /// <param name="filePath">Путь к файлу трека.</param>
-        /// <param name="cancellationToken">Токен отмены операции.</param>
         /// <returns>Информация о треке.</returns>
-        public async Task<TrackData> GetTrackMetadataAsync(string filePath, CancellationToken cancellationToken = default)
+        public static TrackData GetTrackMetadata(string filePath)
         {
             if (!File.Exists(filePath))
                 throw new FileNotFoundException(Error.FileNotFound);
 
+            using var file = TagLib.File.Create(filePath);
+
             var result = new TrackData
             {
                 Filename = filePath,
-                Title = Path.GetFileNameWithoutExtension(filePath)
+                Title = !string.IsNullOrWhiteSpace(file.Tag.Title)
+                    ? file.Tag.Title
+                    : Path.GetFileNameWithoutExtension(filePath),
+                Artist = file.Tag.FirstPerformer ?? string.Empty,
+                Duration = file.Properties.Duration,
+                SampleRate = file.Properties.AudioSampleRate
             };
 
-            string arguments = $"-v error -select_streams a -show_entries stream=sample_rate:packet=duration:stream=codec_name:format=duration:format_tags=artist,title,comment -read_intervals %+1 -of ini \"{filePath}\"";
+            string mime = file.MimeType.ToLowerInvariant();
+            string comment = file.Tag.Comment ?? string.Empty;
+            result.FromFlac = comment.Contains("from FLAC", StringComparison.OrdinalIgnoreCase);
 
-            using var process = new Process
+            if (mime.Contains("flac"))
             {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = _ffprobePath,
-                    Arguments = arguments,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    StandardOutputEncoding = Encoding.UTF8,
-                    StandardErrorEncoding = Encoding.UTF8
-                }
-            };
-
-            var outputBuilder = new StringBuilder();
-            var errorBuilder = new StringBuilder();
-
-            process.OutputDataReceived += (sender, e) =>
-            {
-                if (!string.IsNullOrEmpty(e.Data))
-                    outputBuilder.AppendLine(e.Data);
-            };
-
-            process.ErrorDataReceived += (sender, e) =>
-            {
-                if (!string.IsNullOrEmpty(e.Data))
-                    errorBuilder.AppendLine(e.Data);
-            };
-
-            process.Start();
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
-            await process.WaitForExitAsync(cancellationToken);
-
-            if (process.ExitCode != 0)
-            {
-                throw new Exception(string.Format(Error.FFprobeError, errorBuilder));
+                result.Codec = "flac";
             }
-
-            string output = outputBuilder.ToString();
-            var lines = output.Split(["\r\n", "\r", "\n"], StringSplitOptions.RemoveEmptyEntries);
-
-            string section = string.Empty;
-
-            foreach (var line in lines)
+            else if (mime.Contains("mp3") || mime.Contains("mpeg"))
             {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                if (line.StartsWith('['))
-                    section = line;
-                else
-                {
-                    int separatorIndex = line.IndexOf('=');
-                    if (separatorIndex == -1) continue;
-
-                    string key = line[..separatorIndex].Trim();
-                    string value = line[(separatorIndex + 1)..].Trim();
-
-                    if (section.Contains("packet") && result.SamplesPerFrame == 0)
-                    {
-                        if (key.Equals("duration", StringComparison.OrdinalIgnoreCase) && int.TryParse(value, out var d))
-                            result.SamplesPerFrame = d;
-                    }
-                    else if (section == "[format]")
-                    {
-                        if (key.Equals("duration", StringComparison.OrdinalIgnoreCase) && double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var d))
-                            result.Duration = TimeSpan.FromSeconds(d);
-                    }
-                    else
-                    {
-                        if (key.Equals("sample_rate", StringComparison.OrdinalIgnoreCase) && int.TryParse(value, out var d))
-                            result.SampleRate = d;
-                        else if (key.Equals("codec_name", StringComparison.OrdinalIgnoreCase))
-                            result.Codec = value;
-                        else if (key.Equals("title", StringComparison.OrdinalIgnoreCase))
-                            result.Title = value;
-                        else if (key.Equals("artist", StringComparison.OrdinalIgnoreCase))
-                            result.Artist = value;
-                        else if (key.Equals("comment", StringComparison.OrdinalIgnoreCase))
-                            result.FromFlac = value.Contains("from FLAC");
-                    }
-                }
+                result.Codec = "mp3";
+            }
+            else if (mime.Contains("mp4") || mime.Contains("m4a") || mime.Contains("aac"))
+            {
+                result.Codec = "aac";
+                result.SamplesPerFrame = ReadM4aAacFrameSize(filePath);
             }
 
             if (string.IsNullOrWhiteSpace(result.Codec))
                 throw new Exception(Error.UnableDefineCodec);
             if (result.SampleRate == 0)
-                throw new Exception(Error.UnableDefineSampleRate);
-            if (result.SamplesPerFrame == 0)
-                throw new Exception(Error.UnableDefineSamplesPerFrame);
+                throw new Exception(Error.UnableDefineSampleRate);                
 
             return result;
+        }
+
+        /// <summary>
+        /// Метод чтения размера аудиофрейма из M4A-файла.
+        /// </summary>
+        /// <param name="filePath">Путь к файлу.</param>
+        /// <returns>Количество аудио-сэмплов в одном аудиофрейме.</returns>
+        private static int ReadM4aAacFrameSize(string filePath)
+        {
+            try
+            {
+                using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                using var reader = new BinaryReader(fs);
+
+                var result = FindSttsDelta(fs, reader, fs.Length);
+
+                if (result <= 0)
+                    throw new Exception();
+
+                return result;
+            }
+            catch
+            {
+                throw new ApplicationException(string.Format(Error.UnableReadSamplesPerFrame, filePath));
+            }
+        }
+
+        /// <summary>
+        /// Метод ищет атом stts в M4A-файле и читает размер аудиофрейма.
+        /// </summary>
+        private static int FindSttsDelta(FileStream fs, BinaryReader reader, long endPosition)
+        {
+            byte[] nameBuffer = new byte[4];
+
+            while (fs.Position < endPosition - 8)
+            {
+                long atomSize = (uint)((reader.ReadByte() << 24) | (reader.ReadByte() << 16) | (reader.ReadByte() << 8) | reader.ReadByte());
+
+                if (fs.Read(nameBuffer, 0, 4) < 4) break;
+                string atomName = Encoding.ASCII.GetString(nameBuffer);
+
+                if (atomSize == 1)
+                {
+                    atomSize = (long)((ulong)reader.ReadByte() << 56 | (ulong)reader.ReadByte() << 48 |
+                                     (ulong)reader.ReadByte() << 40 | (ulong)reader.ReadByte() << 32 |
+                                     (ulong)reader.ReadByte() << 24 | (ulong)reader.ReadByte() << 16 |
+                                     (ulong)reader.ReadByte() << 8 | reader.ReadByte());
+                }
+
+                if (atomSize == 0) atomSize = endPosition - fs.Position + 8;
+
+                long atomEnd = fs.Position - 8 + atomSize;
+
+                if (atomName == "moov" || atomName == "trak" || atomName == "mdia" || atomName == "minf" || atomName == "stbl")
+                {
+                    int result = FindSttsDelta(fs, reader, atomEnd);
+                    if (result > 0) return result;
+                }
+                else if (atomName == "stts")
+                {
+                    fs.Seek(8, SeekOrigin.Current); // Пропускаем версию и флаги
+                    fs.Seek(4, SeekOrigin.Current); // Пропускаем sample_count
+
+                    int sampleDelta = (reader.ReadByte() << 24) | (reader.ReadByte() << 16) | (reader.ReadByte() << 8) | reader.ReadByte();
+                    return sampleDelta > 0 ? sampleDelta : 0;
+                }
+
+                if (atomEnd > fs.Position && atomEnd <= endPosition)
+                {
+                    fs.Seek(atomEnd, SeekOrigin.Begin);
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            return 0;
         }
 
         /// <summary>
@@ -241,43 +249,6 @@ namespace Pege.Services
                     StartInfo = new ProcessStartInfo
                     {
                         FileName = _ffmpegPath,
-                        Arguments = "-version",
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        UseShellExecute = false,
-                        CreateNoWindow = true
-                    }
-                };
-
-                process.Start();
-                if (process.WaitForExit(TimeSpan.FromSeconds(5)))
-                {
-                    return process.ExitCode == 0;
-                }
-                else
-                {
-                    try { process.Kill(); } catch { }
-                    return false;
-                }
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Метод проверки доступности утилиты FFprobe.
-        /// </summary>
-        public bool IsFFprobeAvailable()
-        {
-            try
-            {
-                using var process = new Process
-                {
-                    StartInfo = new ProcessStartInfo
-                    {
-                        FileName = _ffprobePath,
                         Arguments = "-version",
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
@@ -326,31 +297,6 @@ namespace Pege.Services
             }
 
             return "ffmpeg";
-        }
-
-        /// <summary>
-        /// Метод определения пути к утилите FFprobe.
-        /// </summary>
-        private static string GetFFprobePath()
-        {
-            if (OperatingSystem.IsWindows())
-            {
-                string localPath = Path.Combine(AppContext.BaseDirectory, "ffprobe.exe");
-                if (File.Exists(localPath))
-                    return localPath;
-
-                var pathEnv = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.Machine) ?? "";
-                foreach (var dir in pathEnv.Split(Path.PathSeparator))
-                {
-                    string fullPath = Path.Combine(dir, "ffprobe.exe");
-                    if (File.Exists(fullPath))
-                        return fullPath;
-                }
-
-                return "ffprobe.exe";
-            }
-
-            return "ffprobe";
         }
 
         /// <summary>
@@ -420,6 +366,12 @@ namespace Pege.Services
             return SplitAdtsToChunks(outputStream.ToArray(), framesPerChunk);
         }
 
+        /// <summary>
+        /// Метод нарезает аудиоданные в чанки.
+        /// </summary>
+        /// <param name="adtsData">Аудиоданные.</param>
+        /// <param name="framesPerChunk">Количество аудиофреймов в чанке.</param>
+        /// <returns>Очередь чанков, готовая для воспроизведения.</returns>
         private static Queue<ReadOnlyMemory<byte>> SplitAdtsToChunks(byte[] adtsData, int framesPerChunk)
         {
             var chunks = new Queue<ReadOnlyMemory<byte>>();
@@ -484,10 +436,5 @@ namespace Pege.Services
         /// Путь к утилите FFmpeg.
         /// </summary>
         private readonly string _ffmpegPath = GetFFmpegPath();
-
-        /// <summary>
-        /// Путь к утилите FFprobeg.
-        /// </summary>
-        private readonly string _ffprobePath = GetFFprobePath();
     }
 }

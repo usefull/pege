@@ -129,22 +129,10 @@
   <data name="Encoding" xml:space="preserve">
     <value>Encoding: {0} to AAC {1} Hz</value>
   </data>
-  <data name="NoEncodingNeeded" xml:space="preserve">
-    <value>No encoding needed.</value>
-  </data>
   <data name="RetransmittingStarted" xml:space="preserve">
     <value>Retransmitting started from URL: {0}</value>
   </data>
   <data name="RetransmittingStopped" xml:space="preserve">
     <value>Retransmitting stopped by server administrator.</value>
-  </data>
-  <data name="TelegramServiceNotInitialized" xml:space="preserve">
-    <value>The telegram service was not initialized.</value>
-  </data>
-  <data name="UnknownArtist" xml:space="preserve">
-    <value>Unknown Artist</value>
-  </data>
-  <data name="UsingOriginalFile" xml:space="preserve">
-    <value>Using original file: {0}.</value>
   </data>
 </root>

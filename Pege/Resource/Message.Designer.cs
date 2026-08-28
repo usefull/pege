@@ -97,15 +97,6 @@ namespace Pege.Resource {
         }
         
         /// <summary>
-        ///   Ищет локализованную строку, похожую на No encoding needed..
-        /// </summary>
-        internal static string NoEncodingNeeded {
-            get {
-                return ResourceManager.GetString("NoEncodingNeeded", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Ищет локализованную строку, похожую на Retransmitting started from URL: {0}.
         /// </summary>
         internal static string RetransmittingStarted {
@@ -120,33 +111,6 @@ namespace Pege.Resource {
         internal static string RetransmittingStopped {
             get {
                 return ResourceManager.GetString("RetransmittingStopped", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Ищет локализованную строку, похожую на The telegram service was not initialized..
-        /// </summary>
-        internal static string TelegramServiceNotInitialized {
-            get {
-                return ResourceManager.GetString("TelegramServiceNotInitialized", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Ищет локализованную строку, похожую на Unknown Artist.
-        /// </summary>
-        internal static string UnknownArtist {
-            get {
-                return ResourceManager.GetString("UnknownArtist", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Ищет локализованную строку, похожую на Using original file: {0}..
-        /// </summary>
-        internal static string UsingOriginalFile {
-            get {
-                return ResourceManager.GetString("UsingOriginalFile", resourceCulture);
             }
         }
     }

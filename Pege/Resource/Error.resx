@@ -157,15 +157,9 @@
   <data name="FFmpegNotAvailable" xml:space="preserve">
     <value>FFmpeg not available.</value>
   </data>
-  <data name="FFmpegNotFound" xml:space="preserve">
-    <value>FFmpeg not found. Make sure FFmpeg is installed and in PATH.</value>
-  </data>
   <data name="FFmpegOutputError" xml:space="preserve">
     <value>FFmpeg did not create output file.
 Input file: {0}</value>
-  </data>
-  <data name="FFprobeNotFound" xml:space="preserve">
-    <value>FFprobe not found. Make sure FFprobe is installed and in PATH.</value>
   </data>
   <data name="TempFilesDeleteError" xml:space="preserve">
     <value>Failed to delete temp files: {0}</value>
@@ -176,20 +170,8 @@ Input file: {0}</value>
   <data name="StreamUnavailable" xml:space="preserve">
     <value>The stream is unavailable.</value>
   </data>
-  <data name="MetadataReadingError" xml:space="preserve">
-    <value>Metadata reading error for file: {0}. Reason: {1}</value>
-  </data>
-  <data name="FFprobeError" xml:space="preserve">
-    <value>FFprobe error: {0}.</value>
-  </data>
   <data name="FileNotFound" xml:space="preserve">
     <value>File not found.</value>
-  </data>
-  <data name="AudioRateReadingError" xml:space="preserve">
-    <value>Audio rate reading error for file: {0}. Reason: {1}</value>
-  </data>
-  <data name="CodecNameReadingError" xml:space="preserve">
-    <value>Codec name reading error for file: {0}. Reason: {1}</value>
   </data>
   <data name="ConnectionLost" xml:space="preserve">
     <value>Connection lost: {0}. Reconnecting in 10 seconds...</value>
@@ -230,9 +212,6 @@ Input file: {0}</value>
   <data name="StreamDoesntSupportUploading" xml:space="preserve">
     <value>The stream does not support uploading.</value>
   </data>
-  <data name="UnacceptableFileExtension" xml:space="preserve">
-    <value>File has an invalid extension. Only .mp3 or .acc is allowed.</value>
-  </data>
   <data name="FileAlreadyExists" xml:space="preserve">
     <value>The file "{0}" already exists.</value>
   </data>
@@ -260,11 +239,11 @@ Input file: {0}</value>
   <data name="UnableDefineSampleRate" xml:space="preserve">
     <value>Unable define sample rate</value>
   </data>
-  <data name="UnableDefineSamplesPerFrame" xml:space="preserve">
-    <value>Unable define frame size</value>
-  </data>
   <data name="PreparingTrackError" xml:space="preserve">
     <value>Preparing track error on file {0}:
 {1}</value>
+  </data>
+  <data name="UnableReadSamplesPerFrame" xml:space="preserve">
+    <value>Unable read audio frame size from file: {0}</value>
   </data>
 </root>

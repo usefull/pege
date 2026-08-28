@@ -73,7 +73,7 @@ namespace Pege.Streaming
         {
             try
             {
-                if (!_ffmpegService.IsFFmpegAvailable() || !_ffmpegService.IsFFprobeAvailable())
+                if (!_ffmpegService.IsFFmpegAvailable())
                     throw new Exception(Error.FFmpegNotAvailable);
 
                 _log.Information(Message.BroadcastingStarted);
@@ -256,11 +256,11 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
             var errors = new ConcurrentBag<string>();
 
             await Parallel.ForEachAsync(files, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 2 },
-                async (file, token) =>
+                async (file, token) => await Task.Run(() =>
                 {
                     try
                     {
-                        var track = await _ffmpegService.GetTrackMetadataAsync(file, CancellationToken.None);
+                        var track = FFmpegService.GetTrackMetadata(file);
                         tracks.Add(track);
 
                     }
@@ -268,7 +268,8 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
                     {
                         errors.Add($"{Path.GetFileName(file)}: {ex.Message}");
                     }
-                });
+                }, CancellationToken.None)
+            );
 
             CastedStatus.TotalDuration = tracks.Aggregate(TimeSpan.Zero, (acc, t) => acc + t.Duration);
             CastedStatus.TotalTracks = tracks.Count;
@@ -352,10 +353,10 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
 
                         var existing = allFiles.Where(f => f.Title == name);
                         if (existing.Any())
-                        {
-                            fileResult.Replaced = true;
+                        {                            
                             if (replace)
                             {
+                                fileResult.Replaced = true;
                                 foreach (var exist in existing)
                                     File.Delete(exist.Filename);
                             }
