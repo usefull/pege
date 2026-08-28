@@ -2,13 +2,16 @@
 using Pege.Resource;
 using System.Diagnostics;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 
 namespace Pege.Services
 {
     /// <summary>
     /// Сервис для работы с медиафайлами.
     /// </summary>
-    internal class FFmpegService()
+    internal partial class FFmpegService()
     {
         /// <summary>
         /// Логгер.
@@ -36,42 +39,11 @@ namespace Pege.Services
                 {
                     Log?.Information(string.Format(Message.Encoding, filePath, targetSampleRate));
 
-                    tempOutput = Path.Combine(Path.GetTempPath(), $"output_{Guid.NewGuid()}.m4a");
-
-                    var fromFlac = result.Codec == "flac" ? "-metadata comment=\"from FLAC\"" : string.Empty;
-
-                    string arguments = $"-i \"{filePath}\" -ar {targetSampleRate} -af loudnorm=I=-18:TP=-1.5:linear=true -c:a libfdk_aac -vbr 4 -vn -movflags +faststart {fromFlac} \"{tempOutput}\"";
-                    using var process = new Process
-                    {
-                        StartInfo = new ProcessStartInfo
-                        {
-                            FileName = _ffmpegPath,
-                            Arguments = arguments,
-                            RedirectStandardOutput = true,
-                            RedirectStandardError = true,
-                            UseShellExecute = false,
-                            CreateNoWindow = true,
-                            StandardOutputEncoding = Encoding.UTF8,
-                            StandardErrorEncoding = Encoding.UTF8
-                        }
-                    };
-
-                    var errorBuilder = new StringBuilder();
-                    process.ErrorDataReceived += (sender, e) => { if (!string.IsNullOrEmpty(e.Data)) errorBuilder.AppendLine(e.Data); };
-
-                    try
-                    {
-                        process.Start();
-                        process.BeginErrorReadLine();
-                        await process.WaitForExitAsync(cancellationToken);
-                    }
-                    finally
-                    {
-                        try { if (!process.HasExited) process.Kill(entireProcessTree: true); } catch { }
-                    }
-
-                    if (process.ExitCode != 0) throw new Exception(errorBuilder.ToString());
-                    if (!File.Exists(tempOutput)) throw new Exception(string.Format(Error.FFmpegOutputError, filePath));
+                    tempOutput = await EncodeToAac(
+                        filePath,
+                        targetSampleRate,
+                        result.Codec == "flac" ? "from FLAC" : string.Empty,
+                        cancellationToken);
 
                     result = GetTrackMetadata(tempOutput);
 
@@ -107,6 +79,93 @@ namespace Pege.Services
                 {
                     Log?.Warning(string.Format(Error.TempFilesDeleteError, ex.Message));
                 }
+            }
+        }
+
+        public async Task<string> EncodeToAac(string srcFilePath, int targetSampleRate, string comment, CancellationToken cancellationToken)
+        {
+            var outputFilePath = Path.Combine(Path.GetTempPath(), $"output_{Guid.NewGuid()}.m4a");
+            var commentMetadata = !string.IsNullOrWhiteSpace(comment) ? $"-metadata comment=\"{comment}\"" : string.Empty;
+
+            // ПЕРВЫЙ ПРОХОД (АНАЛИЗ)
+            string pass1Arguments = $"-i \"{srcFilePath}\" -af loudnorm=I=-18:TP=-1.5:print_format=json -f null -";
+
+            var pass1ErrorBuilder = new StringBuilder();
+            using (var process1 = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = _ffmpegPath,
+                    Arguments = pass1Arguments,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    StandardErrorEncoding = Encoding.UTF8
+                }
+            })
+            {
+                process1.ErrorDataReceived += (sender, e) => { if (!string.IsNullOrEmpty(e.Data)) pass1ErrorBuilder.AppendLine(e.Data); };
+
+                process1.Start();
+                process1.BeginErrorReadLine();
+                await process1.WaitForExitAsync(cancellationToken);
+
+                if (process1.ExitCode != 0)
+                {
+                    throw new Exception(string.Format(Error.LoudnormAnalysisError, srcFilePath, pass1ErrorBuilder));
+                }
+            }
+
+            // Извлекаем JSON из логов ffmpeg
+            string logOutput = pass1ErrorBuilder.ToString();
+            var jsonMatch = JsonRegex().Match(logOutput);
+            if (!jsonMatch.Success)
+            {
+                throw new Exception(string.Format(Error.LoudnormAnalysisError, srcFilePath, Error.UnableReadAnalysisResults));
+            }
+
+            // Парсим замеры
+            var measurements = JsonSerializer.Deserialize<LoudnormOutput>(jsonMatch.Value);
+
+            // ВТОРОЙ ПРОХОД (КОДИРОВАНИЕ)
+            // Подставляем замеры в параметры фильтра loudnorm
+            string loudnormAf = $"-af loudnorm=I=-18:TP=-1.5:linear=true:measured_i={measurements.InputI}:measured_tp={measurements.InputTp}:measured_lra={measurements.InputLra}:measured_thresh={measurements.InputThresh}";
+
+            string pass2Arguments = $"-i \"{srcFilePath}\" -ar {targetSampleRate} {loudnormAf} -c:a libfdk_aac -vbr 4 -vn -movflags +faststart {commentMetadata} \"{outputFilePath}\"";
+
+            using var process2 = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = _ffmpegPath,
+                    Arguments = pass2Arguments,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    StandardOutputEncoding = Encoding.UTF8,
+                    StandardErrorEncoding = Encoding.UTF8
+                }
+            };
+            var errorBuilder = new StringBuilder();
+            process2.ErrorDataReceived += (sender, e) => { if (!string.IsNullOrEmpty(e.Data)) errorBuilder.AppendLine(e.Data); };
+
+            try
+            {
+                process2.Start();
+                process2.BeginErrorReadLine();
+                await process2.WaitForExitAsync(cancellationToken);
+
+                if (process2.ExitCode != 0)
+                {
+                    throw new Exception(string.Format(Error.TrackEncodingError, srcFilePath, errorBuilder));
+                }
+
+                return outputFilePath;
+            }
+            finally
+            {
+                try { if (!process2.HasExited) process2.Kill(entireProcessTree: true); } catch { }
             }
         }
 
@@ -436,5 +495,23 @@ namespace Pege.Services
         /// Путь к утилите FFmpeg.
         /// </summary>
         private readonly string _ffmpegPath = GetFFmpegPath();
+
+        private class LoudnormOutput
+        {
+            [JsonPropertyName("input_i")]
+            public string? InputI { get; set; }
+
+            [JsonPropertyName("input_tp")]
+            public string? InputTp { get; set; }
+
+            [JsonPropertyName("input_lra")]
+            public string? InputLra { get; set; }
+
+            [JsonPropertyName("input_thresh")]
+            public string? InputThresh { get; set; }
+        }
+
+        [GeneratedRegex(@"\{.*\}", RegexOptions.Singleline)]
+        private static partial Regex JsonRegex();
     }
 }
