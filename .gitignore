@@ -65,6 +65,7 @@ nunit-*.xml
 deploy.conf
 audio
 storage
+app
 /Pege/stream.log
 /Pege/conector.log
 /Pege/conector.log

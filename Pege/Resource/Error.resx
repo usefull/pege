@@ -246,4 +246,16 @@ Input file: {0}</value>
   <data name="UnableReadSamplesPerFrame" xml:space="preserve">
     <value>Unable read audio frame size from file: {0}</value>
   </data>
+  <data name="ClientAppPathNotDefined" xml:space="preserve">
+    <value>The client application path is not defined in the configuration (ClientAppPath parameter).</value>
+  </data>
+  <data name="LoudnormAnalysisError" xml:space="preserve">
+    <value>Loudnorm analysis error on file '{0}': {1}</value>
+  </data>
+  <data name="UnableReadAnalysisResults" xml:space="preserve">
+    <value>Unable to read analysis results</value>
+  </data>
+  <data name="TrackEncodingError" xml:space="preserve">
+    <value>Track encoding error on file '{0}': {1}</value>
+  </data>
 </root>

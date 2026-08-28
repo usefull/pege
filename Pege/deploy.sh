@@ -52,7 +52,7 @@ rm /tmp/project.tar.gz
 
 # Удаленное выполнение команд на VPS с передачей нужных переменных
 echo "Подключение к VPS для сборки и настройки..."
-ssh "$VPS_USER@$VPS_IP" TG_BOT_TOKEN="$TG_BOT_TOKEN" CONTAINER_NAME="$CONTAINER_NAME" IMAGE_NAME="$IMAGE_NAME" 'bash -s' << 'EOF'
+ssh "$VPS_USER@$VPS_IP" TG_BOT_TOKEN="$TG_BOT_TOKEN" CONTAINER_NAME="$CONTAINER_NAME" IMAGE_NAME="$IMAGE_NAME" VPS_IP="$VPS_IP" 'bash -s' << 'EOF'
     set -e
 
     # --- БЛОК ПРОВЕРКИ И УСТАНОВКИ DOCKER ---
@@ -102,7 +102,6 @@ ConsumerRate__20=2000
 ConsumerRate__21=2100
 ConsumerRate__22=2200
 ConsumerRate__23=2300
-ConsumerRate__24=2400
 MeasuringPeriods__0=20
 ASPNETCORE_URLS=http://+:8080
 ENV_EOF
@@ -119,7 +118,7 @@ ENV_EOF
     # Остановка и удаление старого контейнера, если он существует
     if [ $(docker ps -a -q -f name=^/${CONTAINER_NAME}$) ]; then
         echo "Остановка и удаление старого контейнера..."
-        curl -X POST "http://$VPS_IP:8080/api/stream/stop"
+        curl -X PUT "http://${VPS_IP}:8080/api/stream/stop"
         sleep 10
         docker stop ${CONTAINER_NAME}
         docker rm ${CONTAINER_NAME}

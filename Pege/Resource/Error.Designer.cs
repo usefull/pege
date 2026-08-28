@@ -89,6 +89,15 @@ namespace Pege.Resource {
         }
         
         /// <summary>
+        ///   Ищет локализованную строку, похожую на The client application path is not defined in the configuration (ClientAppPath parameter)..
+        /// </summary>
+        internal static string ClientAppPathNotDefined {
+            get {
+                return ResourceManager.GetString("ClientAppPathNotDefined", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Ищет локализованную строку, похожую на Connection lost: {0}. Reconnecting in 10 seconds....
         /// </summary>
         internal static string ConnectionLost {
@@ -176,6 +185,15 @@ namespace Pege.Resource {
         internal static string InvalidStreamId {
             get {
                 return ResourceManager.GetString("InvalidStreamId", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Ищет локализованную строку, похожую на Loudnorm analysis error on file &apos;{0}&apos;: {1}.
+        /// </summary>
+        internal static string LoudnormAnalysisError {
+            get {
+                return ResourceManager.GetString("LoudnormAnalysisError", resourceCulture);
             }
         }
         
@@ -379,6 +397,15 @@ namespace Pege.Resource {
         }
         
         /// <summary>
+        ///   Ищет локализованную строку, похожую на Track encoding error on file &apos;{0}&apos;: {1}.
+        /// </summary>
+        internal static string TrackEncodingError {
+            get {
+                return ResourceManager.GetString("TrackEncodingError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Ищет локализованную строку, похожую на Unable define codec.
         /// </summary>
         internal static string UnableDefineCodec {
@@ -393,6 +420,15 @@ namespace Pege.Resource {
         internal static string UnableDefineSampleRate {
             get {
                 return ResourceManager.GetString("UnableDefineSampleRate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Ищет локализованную строку, похожую на Unable to read analysis results.
+        /// </summary>
+        internal static string UnableReadAnalysisResults {
+            get {
+                return ResourceManager.GetString("UnableReadAnalysisResults", resourceCulture);
             }
         }
         

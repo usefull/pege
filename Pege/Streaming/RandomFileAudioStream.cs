@@ -136,7 +136,12 @@ namespace Pege.Streaming
                 UpdateIcyMetadata();
 
                 if (cancellationToken.IsCancellationRequested)
+                {
                     _log.Information(Message.BroadcastingStopped);
+                    _ = _serviceProvider.GetService<TelegramService>()?.SendMessageAsync(
+                        "The broadcast is temporarily suspended due to technical work. Everything will be restored very soon. Thank you for your patience.",
+                        Status.TelegramChannelId!);
+                }
             }
         }
 
