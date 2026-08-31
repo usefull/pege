@@ -88,6 +88,15 @@ ssh "$VPS_USER@$VPS_IP" TG_BOT_TOKEN="$TG_BOT_TOKEN" CONTAINER_NAME="$CONTAINER_
 Telegram__BotToken=${TG_BOT_TOKEN}
 DelayMeasurementMode=true
 ConsumerRate__0=0
+ConsumerRate__1=100
+ConsumerRate__2=200
+ConsumerRate__3=300
+ConsumerRate__4=400
+ConsumerRate__5=500
+ConsumerRate__6=600
+ConsumerRate__7=700
+ConsumerRate__8=800
+ConsumerRate__9=900
 ConsumerRate__10=1000
 ConsumerRate__11=1100
 ConsumerRate__12=1200
@@ -102,7 +111,10 @@ ConsumerRate__20=2000
 ConsumerRate__21=2100
 ConsumerRate__22=2200
 ConsumerRate__23=2300
-MeasuringPeriods__0=20
+MeasuringPeriods__0=15
+MeasuringPeriods__1=15
+MeasuringPeriods__2=15
+MeasuringPeriods__3=15
 ASPNETCORE_URLS=http://+:8080
 ENV_EOF
 

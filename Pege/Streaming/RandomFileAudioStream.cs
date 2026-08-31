@@ -48,7 +48,33 @@ namespace Pege.Streaming
                 try
                 {
                     trackPath = GetNextFilename();
+
+                    _ffmpegService.LoudNormAnalysisStarted += _ffmpegService_LoudNormAnalysisStarted;
+                    _ffmpegService.LoudNormAnalysisProgress += _ffmpegService_LoudNormAnalysisProgress;
+                    _ffmpegService.LoudNormAnalysisFinished += _ffmpegService_LoudNormAnalysisFinished;
+
+                    _ffmpegService.EncodingStarted += _ffmpegService_EncodingStarted;
+                    _ffmpegService.EncodingProgress += _ffmpegService_EncodingProgress;
+                    _ffmpegService.EncodingFinished += _ffmpegService_EncodingFinished;
+
+                    _ffmpegService.AdtsPackingStarted += _ffmpegService_AdtsPackingStarted;
+                    _ffmpegService.AdtsPackingProgress += _ffmpegService_AdtsPackingProgress;
+                    _ffmpegService.AdtsPackingFinished += _ffmpegService_AdtsPackingFinished;
+
                     result = await _ffmpegService.PrepareAacTrackAsync(trackPath, _targetSamplerate, _framesPerChunk, cancellationToken);
+
+                    _ffmpegService.AdtsPackingStarted -= _ffmpegService_AdtsPackingStarted;
+                    _ffmpegService.AdtsPackingProgress -= _ffmpegService_AdtsPackingProgress;
+                    _ffmpegService.AdtsPackingFinished -= _ffmpegService_AdtsPackingFinished;
+
+                    _ffmpegService.EncodingStarted -= _ffmpegService_EncodingStarted;
+                    _ffmpegService.EncodingProgress -= _ffmpegService_EncodingProgress;
+                    _ffmpegService.EncodingFinished -= _ffmpegService_EncodingFinished;
+
+                    _ffmpegService.LoudNormAnalysisStarted -= _ffmpegService_LoudNormAnalysisStarted;
+                    _ffmpegService.LoudNormAnalysisProgress -= _ffmpegService_LoudNormAnalysisProgress;
+                    _ffmpegService.LoudNormAnalysisFinished -= _ffmpegService_LoudNormAnalysisFinished;
+
                     if (result.Filename != trackPath)
                         _history.Add(result.Filename);
                 }
@@ -63,6 +89,50 @@ namespace Pege.Streaming
             }
 
             return result;
+        }
+
+        private void _ffmpegService_LoudNormAnalysisFinished(object? sender, EventArgs e)
+        {
+            StateChanged?.Invoke(this, "lna-");
+        }
+
+        private void _ffmpegService_LoudNormAnalysisProgress(object? sender, EventArgs e)
+        {
+            StateChanged?.Invoke(this, "lna*");
+        }
+
+        private void _ffmpegService_LoudNormAnalysisStarted(object? sender, EventArgs e)
+        {
+            StateChanged?.Invoke(this, "lna+");
+        }
+
+        private void _ffmpegService_EncodingFinished(object? sender, EventArgs e)
+        {
+            StateChanged?.Invoke(this, "enc-");
+        }
+
+        private void _ffmpegService_EncodingProgress(object? sender, EventArgs e)
+        {
+            StateChanged?.Invoke(this, "enc*");
+        }
+
+        private void _ffmpegService_EncodingStarted(object? sender, EventArgs e)
+        {
+            StateChanged?.Invoke(this, "enc+");
+        }
+        private void _ffmpegService_AdtsPackingFinished(object? sender, EventArgs e)
+        {
+            StateChanged?.Invoke(this, "adts-");
+        }
+
+        private void _ffmpegService_AdtsPackingProgress(object? sender, EventArgs e)
+        {
+            StateChanged?.Invoke(this, "adts*");
+        }
+
+        private void _ffmpegService_AdtsPackingStarted(object? sender, EventArgs e)
+        {
+            StateChanged?.Invoke(this, "adts+");
         }
 
         /// <summary>
@@ -495,6 +565,11 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
         /// Количество аудио-фреймов в одной порции транслируемых данных.
         /// </summary>
         private readonly int _framesPerChunk = 15;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public event EventHandler<string>? StateChanged;
 
         /// <summary>
         /// регулярное выражение для нормализации пробельных символов.

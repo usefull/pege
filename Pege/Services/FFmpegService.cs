@@ -18,6 +18,18 @@ namespace Pege.Services
         /// </summary>
         public Serilog.ILogger? Log { get; set; }
 
+        public event EventHandler? LoudNormAnalysisStarted;
+        public event EventHandler? LoudNormAnalysisProgress;
+        public event EventHandler? LoudNormAnalysisFinished;
+
+        public event EventHandler? EncodingStarted;
+        public event EventHandler? EncodingProgress;
+        public event EventHandler? EncodingFinished;
+
+        public event EventHandler? AdtsPackingStarted;
+        public event EventHandler? AdtsPackingProgress;
+        public event EventHandler? AdtsPackingFinished;
+
         /// <summary>
         /// Метод подготавливает трек к воспроизведению.
         /// </summary>
@@ -63,7 +75,7 @@ namespace Pege.Services
                     
                 }
 
-                result.Chunks = ConvertM4AToAdtsChunks(trackBytes, framesPerChunk);
+                result.Chunks = await ConvertM4AToAdtsChunksAsync(trackBytes, framesPerChunk, cancellationToken);
 
                 return result;
             }
@@ -106,9 +118,25 @@ namespace Pege.Services
             {
                 process1.ErrorDataReceived += (sender, e) => { if (!string.IsNullOrEmpty(e.Data)) pass1ErrorBuilder.AppendLine(e.Data); };
 
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+                LoudNormAnalysisStarted?.Invoke(this, EventArgs.Empty);
+                var progressEventTask = RunProgressEventAsync(LoudNormAnalysisProgress, cts.Token);
+
                 process1.Start();
+                process1.PriorityClass = ProcessPriorityClass.BelowNormal;
                 process1.BeginErrorReadLine();
-                await process1.WaitForExitAsync(cancellationToken);
+
+                try
+                {
+                    await process1.WaitForExitAsync(cts.Token);
+                }
+                finally
+                {
+                    cts.Cancel();
+                }
+                await progressEventTask;
+                LoudNormAnalysisFinished?.Invoke(this, EventArgs.Empty);
 
                 if (process1.ExitCode != 0)
                 {
@@ -152,9 +180,25 @@ namespace Pege.Services
 
             try
             {
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+                EncodingStarted?.Invoke(this, EventArgs.Empty);
+                var progressEventTask = RunProgressEventAsync(EncodingProgress, cts.Token);
+
                 process2.Start();
+                process2.PriorityClass = ProcessPriorityClass.BelowNormal;
                 process2.BeginErrorReadLine();
-                await process2.WaitForExitAsync(cancellationToken);
+
+                try
+                {
+                    await process2.WaitForExitAsync(cts.Token);
+                }
+                finally
+                {
+                    cts.Cancel();
+                }
+                await progressEventTask;
+                EncodingFinished?.Invoke(this, EventArgs.Empty);
 
                 if (process2.ExitCode != 0)
                 {
@@ -167,6 +211,19 @@ namespace Pege.Services
             {
                 try { if (!process2.HasExited) process2.Kill(entireProcessTree: true); } catch { }
             }
+        }
+
+        private async Task RunProgressEventAsync(EventHandler? progressEvent, CancellationToken token)
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+            try
+            {
+                while (await timer.WaitForNextTickAsync(token))
+                {
+                    progressEvent?.Invoke(this, EventArgs.Empty);
+                }
+            }
+            catch (OperationCanceledException) { }
         }
 
         /// <summary>
@@ -361,7 +418,7 @@ namespace Pege.Services
         /// <summary>
         /// Конвертирует M4A VBR данные в чанки ADTS полностью в памяти без использования временных файлов на диске.
         /// </summary>
-        public Queue<ReadOnlyMemory<byte>> ConvertM4AToAdtsChunks(ReadOnlyMemory<byte> m4aData, int framesPerChunk)
+        public async Task<Queue<ReadOnlyMemory<byte>>> ConvertM4AToAdtsChunksAsync(ReadOnlyMemory<byte> m4aData, int framesPerChunk, CancellationToken cancellationToken)
         {
             if (m4aData.IsEmpty) throw new ArgumentException("M4A data is empty.", nameof(m4aData));
             if (framesPerChunk <= 0) throw new ArgumentException("Frames per chunk must be greater than 0.", nameof(framesPerChunk));
@@ -387,11 +444,16 @@ namespace Pege.Services
             try
             {
                 process.Start();
+                process.PriorityClass = ProcessPriorityClass.BelowNormal;
             }
             catch (Exception ex)
             {
                 throw new InvalidOperationException("Failed to start ffmpeg. Ensure it is installed and available in PATH.", ex);
             }
+
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            AdtsPackingStarted?.Invoke(this, EventArgs.Empty);
+            var progressEventTask = RunProgressEventAsync(AdtsPackingProgress, cts.Token);
 
             // В продакшене запись в stdin и чтение из stdout должны происходить асинхронно или параллельно,
             // чтобы избежать взаимной блокировки (deadlock) при заполнении буферов ОС.
@@ -412,8 +474,18 @@ namespace Pege.Services
             });
 
             // Ждем завершения потоков ввода-вывода и самого процесса
-            Task.WaitAll(writeTask, readTask);
-            process.WaitForExit();
+            await Task.WhenAll(writeTask, readTask);
+
+            try
+            {
+                await process.WaitForExitAsync(cts.Token);
+            }
+            finally
+            {
+                cts.Cancel();
+            }
+            await progressEventTask;
+            AdtsPackingFinished?.Invoke(this, EventArgs.Empty);
 
             if (process.ExitCode != 0)
             {

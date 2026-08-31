@@ -22,6 +22,8 @@ namespace Pege.Test.Core
         private readonly Dictionary<string, List<PeriodSummary>> _report = [];
         private readonly object _lock = new();
 
+        private Dictionary<DateTime, string> _events;
+
         public event EventHandler? MeasuringFinished;
 
         public void StartMeasuring(string label, TimeSpan[] periods)
@@ -48,6 +50,8 @@ namespace Pege.Test.Core
                         _jitter = 0;
                         _median = new StreamingMedian(0.5);  // Квантиль 0.5
                         _p99 = new StreamingMedian(0.99);    // Квантиль 0.99
+
+                        _events = [];
                     }
 
                     await Task.Delay(p);
@@ -56,7 +60,9 @@ namespace Pege.Test.Core
                     {
                         double stdDev = _count > 1 ? Math.Sqrt(_m2 / (_count - 1)) : 0;
 
-                        //Console.WriteLine($"[{label} P{_period}] Chunks: {_count} | Avg: {_avg:F1}ms | Median: {_median.Value:F1}ms | p99: {_p99.Value:F1}ms | Max: {_max:F1}ms | Jitter: {_jitter:F1}ms | StdDev: {stdDev:F1}ms");
+                        var lna = _events.Where(e => e.Value.StartsWith("lna")).Select(e => e.Key).OrderByDescending(e => e);
+                        var enc = _events.Where(e => e.Value.StartsWith("enc")).Select(e => e.Key).OrderByDescending(e => e);
+                        var adts = _events.Where(e => e.Value.StartsWith("adts")).Select(e => e.Key).OrderByDescending(e => e);                        
 
                         _report[label].Add(new PeriodSummary
                         {
@@ -67,7 +73,10 @@ namespace Pege.Test.Core
                             P99 = _p99.Value,
                             Max = _max,
                             Jitter = _jitter,
-                            StdDev = stdDev
+                            StdDev = stdDev,
+                            LNA = lna.Any() ? lna.First() - lna.Last() : TimeSpan.Zero,
+                            Encoding = enc.Any() ? enc.First() - enc.Last() : TimeSpan.Zero,
+                            ADTS = adts.Any() ? adts.First() - adts.Last() : TimeSpan.Zero,
                         });
                     }
 
@@ -85,12 +94,12 @@ namespace Pege.Test.Core
         {
             get
             {
-                var result = new StringBuilder("Label\tPeriod\tCount\tAvg\tMedian\tJitter\tP99\tMax\tStdDev\n");
+                var result = new StringBuilder("Label\tPeriod\tCount\tAvg\tMedian\tJitter\tP99\tMax\tStdDev\tLNA\tEncode\tADTS\n");
                 result = _report.Aggregate(result, (acc, i) =>
                 {
                     acc = i.Value.Aggregate(acc, (ac, j) =>
                     {
-                        ac.AppendLine($"{i.Key}\tp{j.PeriodIndex}\t{j.Count}\t{j.Avg:F1}\t{j.Median:F1}\t{j.Jitter:F1}\t{j.P99:F1}\t{j.Max:F1}\t{j.StdDev:F1}");
+                        ac.AppendLine($"{i.Key}\tp{j.PeriodIndex}\t{j.Count}\t{j.Avg:F1}\t{j.Median:F1}\t{j.Jitter:F1}\t{j.P99:F1}\t{j.Max:F1}\t{j.StdDev:F1}\t{j.LNA.TotalSeconds:F1}\t{j.Encoding.TotalSeconds:F1}\t{j.ADTS.TotalSeconds:F1}");
                         return ac;
                     });
                     return acc;
@@ -170,6 +179,15 @@ namespace Pege.Test.Core
             // 5. Перцентили (Медиана и p99)
             _median!.Update(valueMs);
             _p99!.Update(valueMs);
+        }
+
+        public void Event(string e)
+        {
+            lock (_lock)
+            {
+                if (_period < 0) return;
+                _events.Add(DateTime.Now, e);
+            }
         }
     }
 }

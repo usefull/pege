@@ -8,5 +8,7 @@ namespace Pege.Interfaces
         Task<UploadResult> UploadAsync(MultipartReader reader, bool quietly, bool replace, CancellationToken cancellationToken);
 
         Task DeleteTrackAsync(string fileName);
+
+        event EventHandler<string>? StateChanged;
     }
 }

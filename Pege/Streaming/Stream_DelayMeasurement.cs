@@ -20,15 +20,26 @@ namespace Pege.Streaming
             {
                 _measureStage++;
                 _meter.StartMeasuring(_consumerRate[_measureStage].ToString(), [.. _periods.Select(p => TimeSpan.FromSeconds(p))]);
+
+                if (this is IFileUploader uploader)
+                    uploader.StateChanged += Uploader_StateChanged;
+
                 _log.Information($"{_consumerRate[_measureStage]}: measuring epoch started");
+
+                _meter.MeasuringFinished += MeasuringFinished;
 
                 // Если запущена последняя эпоха, подключаем обработчик завершения измерений
                 if (_measureStage + 1 == _consumerRate.Length)
                 {
                     _log.Information("Waiting for measurement finished ...");
-                    _meter.MeasuringFinished += MeasuringFinished;
+                //    _meter.MeasuringFinished += MeasuringFinished;
                 }
             }
+        }
+
+        private void Uploader_StateChanged(object? sender, string e)
+        {
+            _meter.Event(e);
         }
 
         /// <summary>
@@ -39,14 +50,19 @@ namespace Pege.Streaming
         /// <param name="e">Параметры события.</param>
         private void MeasuringFinished(object? sender, EventArgs e)
         {
+            if (this is IFileUploader uploader)
+                uploader.StateChanged -= Uploader_StateChanged;
             _meter.MeasuringFinished -= MeasuringFinished;
-            _ = File.WriteAllTextAsync("storage/stream.log", _meter.Report).ContinueWith(t =>
+            if (_measureStage + 1 == _consumerRate.Length)
             {
-                if (t.Exception != null)
-                    _log.Error($"Stream log saving error: {(t.Exception.InnerException == null ? t.Exception.Message : t.Exception.InnerException.Message)}");
-                else
-                    _log.Information("Stream log saved.");
-            });
+                _ = File.WriteAllTextAsync("storage/stream.log", _meter.Report).ContinueWith(t =>
+                {
+                    if (t.Exception != null)
+                        _log.Error($"Stream log saving error: {(t.Exception.InnerException == null ? t.Exception.Message : t.Exception.InnerException.Message)}");
+                    else
+                        _log.Information("Stream log saved.");
+                });
+            }
         }
 
         /// <summary>

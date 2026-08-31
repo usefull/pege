@@ -10,5 +10,9 @@
         public double Max { get; set; }
         public double Jitter { get; set; }
         public double StdDev { get; set; }
+
+        public TimeSpan LNA { get; set; }
+        public TimeSpan Encoding { get; set; }
+        public TimeSpan ADTS { get; set; }
     }
 }
