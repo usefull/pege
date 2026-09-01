@@ -1,8 +1,8 @@
 import '../styles/flac-label.scss';
 
 const FlacLabel = () => {
-    return (<svg className='flac-label' viewBox="0 0 15 16" fill="currentColor">
-        <path d="M3 3H11A1 1 0 0111 5H5V7H9A1 1 0 019 9H5V12A1 1 0 013 12ZM0 0V16H15V0Z" />
+    return (<svg className='flac-label' viewBox="0 0 17 17" fill="currentColor" fillRule='evenodd'>
+        <path d="M4 4V12A1 1 0 006 12V10H9A1 1 0 009 8H6V6H12A1 1 0 0012 4ZM8.5 0A1 1 0 008.5 17 1 1 0 008.5 0" />
     </svg>);
 };
 

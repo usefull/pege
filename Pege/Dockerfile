@@ -46,4 +46,7 @@ RUN dotnet publish "Pege.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseA
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+
+COPY Pege/app/ ./app/
+
 ENTRYPOINT ["dotnet", "Pege.dll"]

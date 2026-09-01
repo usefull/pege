@@ -38,6 +38,9 @@ tar --exclude='bin' \
     --exclude='.vs' \
     --exclude='audio' \
     --exclude='storage' \
+    --exclude='Client' \
+    --exclude='LoadTests' \
+    --exclude='SimpleTest' \
     -czf /tmp/project.tar.gz .
 
 cd "$PROJECT_DIR"  # Возвращаемся обратно в папку проекта
