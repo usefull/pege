@@ -1,0 +1,122 @@
+@use 'vars' as *;
+
+.equalizer-panel {
+    font-size: 22px;
+    position:fixed;
+    display: flex;
+    flex-direction: column;
+    top:50px;
+    left:100%;
+    bottom:0;
+    right:0;
+    background-color: $color-bkg-light;
+    box-shadow: 0 0 15px $color-text;
+    will-change: left;
+    transition: left 0.3s ease-in-out;
+    overflow: hidden;
+    gap:10px;
+
+    &.open {
+        left: 0;
+    }
+
+    .toggle-switch {
+        align-self: center;
+        width: 230px;
+        flex: 50px 0;
+    }
+
+    div {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+
+        div {
+            font-size: 13px;
+
+            &:first-child {
+                display: flex;
+                flex-direction: row;
+                justify-content: space-between;
+
+                div:first-child {
+                    display: flex;
+                    flex: 0 30px;
+                    flex-direction: column;
+                    justify-content: flex-start;
+
+                    div {
+                        flex:1;
+                        text-align: right;
+
+                        &:last-child {
+                             flex: 0 16px;
+                        }
+                        &:nth-child(3) {
+                            flex: 0 16px;
+                        }
+                    }
+                }
+
+                .eq-grain {
+                    position: relative;
+                    flex: 0 50px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                    input {
+                        flex: 1;
+                        z-index: 100;
+                    }
+                    div {
+                        text-align: center;
+
+                        &.label {
+                            flex: 0 17px;
+                        }
+
+                        &.zero-level {
+                            position: absolute;
+                            line-height: 10px;
+                            top: calc((100%/2) - 15px);
+                            left: 21%;
+                            right: 20%;
+                            display: flex;
+                            flex-direction: row;
+                            justify-content: space-between;
+                        }
+                    }
+                }
+            }
+
+            &.spatial-panel {
+
+                div:first-child {
+                    flex: 0;
+                    padding-top: 15px;
+                    font-size: 22px;
+                    justify-content: center;
+                }
+
+                .spatial-ctrl {
+                    position: relative;
+                    margin: 10px;
+                    background-color: $color-header-bkg-light;
+                    background-image: url("data:image/svg+xml,%3Csvg%20version%3D%221.0%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22%235d4a1f%22%20opacity%3D%220.5%22%20viewBox%3D%220%20-5%201000%201002%22%3E%3Cpath%20d%3D%22M644%207C541-14%20391%202%20314%2042%20225%2088%20150%20196%20125%20313c-6%2030-30%2087-54%20127-23%2040-46%2082-49%2094-10%2031%207%2056%2053%2077l41%2018%200%2067c0%20121%2069%20200%20177%20200h43v50c0%2043%203%2050%2020%2050%2018%200%2020-7%2020-75V846l-53%206c-67%208-119-13-147-58-15-26-20-50-20-110V606l-50-25c-28-14-50-28-50-31s22-43%2048-87c28-48%2053-107%2061-142C194%20188%20268%2098%20379%2059c80-28%20243-24%20322%207%20121%2047%20200%20162%20212%20310%208%2090-11%20166-59%20246-59%2097-78%20167-78%20280%200%2085%202%2094%2019%2094s19-11%2023-113c4-121-2-100%2095-288%2077-148%2043-369-74-487C792%2061%20714%2020%20644%207Z%22%2F%3E%3C%2Fsvg%3E");
+                    overflow: hidden;
+                    border: 1px solid $color-header-bkg;
+                    background-position: center;
+                    background-repeat: no-repeat;
+                    background-size: 15%;
+                    
+                    .sound-source {
+                        position: absolute;
+                        width: 50px;
+                        height: 50px;
+                        color: $color-text;
+                    }
+                }
+            }            
+        }
+    }
+}

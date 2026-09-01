@@ -1,0 +1,27 @@
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#dad0be" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>o0o0.online</title>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+    <script>eruda.init();</script> -->
+    <script src="/telegram-web-app.js"></script>
+    <script>
+        (function() {
+            if (window.location.hash && window.location.hash.includes('tgWebAppData')) {
+                window.location.hash = '#/';
+                window.location.reload();
+            }
+        })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

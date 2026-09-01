@@ -1,0 +1,59 @@
+@use 'vars' as *;
+
+.toggle-switch {
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+
+    &.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+        position: absolute;
+    }
+
+    .slider {
+        position: relative;
+        display: inline-block;
+        border-radius: 28px;
+        transition: background-color 0.3s ease;
+        height: 25px;
+        flex: 50px 0;
+        background: linear-gradient($color-header-bkg-light, $color-header-bkg);
+
+        &.on {
+            background: $color-text;
+        }
+    }
+
+    .handle {
+        position: absolute;
+        height: 25px;
+        width: 25px;
+        transform: translate(0, 0);
+        background: linear-gradient($color-header-bkg, $color-header-bkg-light);
+        border-radius: 50%;
+        transition: transform 0.3s ease;
+        box-shadow:  0 0 4px $color-text;
+
+        &.on {
+            transform: translate(27px, 0);
+        }
+    }
+
+    .toggle-label {
+        font-size: inherit;
+        color: inherit;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+}

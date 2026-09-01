@@ -1,0 +1,101 @@
+@use 'vars' as *;
+
+.info-p {
+    font-size: 22px;
+    position:fixed;
+    display: flex;
+    flex-direction: column;
+    top:50px;
+    left:100%;
+    bottom:0;
+    right:0;
+    background-color: $color-bkg-light;
+    box-shadow: 0 0 15px $color-text;
+    will-change: left;
+    transition: left 0.3s ease-in-out;
+    overflow: hidden;
+
+    &.open {
+        left: 0;
+    }
+
+    div.tabs {
+        flex: 0 46px;
+        display: flex;
+        flex-direction: row;
+        
+
+        div {
+            display: flex;
+            flex: 1;
+            justify-content: center;
+            padding: 8px 5px;
+            background-color: #{$color-header-bkg}88;
+            border-bottom: 1px solid #{$color-text}55;
+            border-top: 1px solid #{$color-header-bkg}88;
+            
+            gap:10px;
+
+            &.current-tab {
+                background-color: $color-bkg-light;
+                border-top: 1px solid #{$color-text}55;
+                border-bottom: 1px solid $color-bkg-light;
+            }
+
+            &:first-child {
+                border-right: 1px solid #{$color-text}55;
+            }
+
+            svg {
+                width: 25px;
+            }
+        }
+    }
+
+    div.i-content {
+        overflow-y: auto;
+        overflow-x: hidden;
+        flex: 1;
+        padding: 10px;
+        font-size: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+
+        div {
+            height: auto;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+            white-space: normal;
+            text-align: center;
+
+            span:first-child {
+                opacity: 0.7;
+            }
+
+            &.title {
+                font-weight: bold;
+                font-size: 22px;
+                .country {
+                    font-weight: normal;
+                }
+            }
+
+            &.additional {
+                display: flex;
+                gap: 10px;
+                span {
+                    flex:1;
+                    text-align: left;
+                    &:first-child {
+                        //flex: 0 135px;
+                        text-align: right;
+                    }
+                    &:nth-child(2) {
+                        
+                    }
+                }
+            }
+        }
+    }
+}

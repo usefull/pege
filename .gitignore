@@ -61,6 +61,11 @@ CodeCoverage/
 TestResult.xml
 nunit-*.xml
 
+# React
+package-lock.json
+node_modules
+dev-dist
+
 # Custom
 deploy.conf
 audio

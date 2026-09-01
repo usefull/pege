@@ -1,0 +1,95 @@
+@use 'vars' as *;
+
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-size: 32px;
+    color: $color-text;
+    background:
+        radial-gradient(circle at 30% 50%, $color-bkg-light 0%, transparent 70%),
+        radial-gradient(circle at 70% 50%, $color-bkg 0%, transparent 70%),
+        linear-gradient(to bottom, $color-header-bkg-light 0%, $color-header-bkg-dark 50%, $color-header-bkg-light 100%);
+
+    a {
+        color: $color-text;
+
+        &:visited {
+            color: $color-text;
+        }
+    }
+
+    svg.button {
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        &:hover {
+            cursor: pointer;
+        }
+        &:active {
+             filter: drop-shadow(0 0 5px $color-text);
+        }
+    }
+
+    .disabled {
+        pointer-events: none;
+        opacity: 0.6;
+    }
+
+    input[type=range] {
+        -webkit-appearance: none;
+        appearance: none;
+        background: transparent;
+        border: none;
+        outline: none;
+        margin: 0;
+
+        @mixin tumb-styles {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: $color-text;
+            cursor: pointer;
+            border: 1px $color-text solid;
+        }
+
+        &::-webkit-slider-thumb {
+            @include tumb-styles; 
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+        }
+
+        &::-moz-range-thumb {
+            @include tumb-styles; 
+        }
+
+        @mixin track-styles {
+            height: 16px;
+            background-color: $color-header-bkg;
+            border-radius: 7px;
+        }
+
+        &::-webkit-slider-runnable-track {
+             @include track-styles; 
+        }
+
+        &::-moz-range-track {
+            @include track-styles;
+        }
+        
+        &.vertical {
+            writing-mode: vertical-lr;
+            direction: rtl;
+
+            &::-webkit-slider-runnable-track {
+                width: 16px; 
+            }
+
+            &::-moz-range-track {
+                height: 100%;
+                width: 16px;
+            }    
+        }
+    }
+}
