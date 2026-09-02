@@ -199,9 +199,8 @@ CADDY_EOF
     # Остановка старого контейнера приложения
     if [ $(docker ps -a -q -f name=^/${CONTAINER_NAME}$) ]; then
         echo "Остановка старого контейнера приложения..."
-        # Пытаемся остановить стрим через Caddy
-        curl -X PUT "https://${DOMAIN}/api/stream/stop" -k || \
-        curl -X PUT "http://${CONTAINER_NAME}:8080/api/stream/stop" || true
+        # Пытаемся остановить стрим
+        curl -X PUT "https://${DOMAIN}/api/stream/stop"
         sleep 5
         docker stop ${CONTAINER_NAME} || true
         docker rm ${CONTAINER_NAME} || true
