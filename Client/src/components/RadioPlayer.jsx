@@ -350,6 +350,8 @@ const RadioPlayer = ({
 
                                         if (t && t.length > 0) {
                                             streamInfoRef.current.Next = `"${t}"${(a && a.length > 0) ? ` by ${a}` : ''}`;
+                                        } else {
+                                            streamInfoRef.current.Next = null;
                                         }
                                     }
                                 }

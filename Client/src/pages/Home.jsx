@@ -177,7 +177,6 @@ const Home = () => {
             centralFreqs={CENTRAL_FREQS}
             eqGrains={eqGains}
             onStreamInfoUpdate={info => {
-                console.log(info);
                 if (info.Name) setStreamTitle(info.Name);
                 setStreamSubtitle(info.Country ? `(${info.Country})` : null);
                 setTrack(info.Track);

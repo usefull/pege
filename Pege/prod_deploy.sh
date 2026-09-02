@@ -246,15 +246,7 @@ CADDY_EOF
     
     echo ""
     echo "=== Развертывание успешно завершено! ==="
-    echo "Приложение доступно по адресу: https://${DOMAIN}"
-    
-    echo ""
-    echo "Ожидание получения SSL сертификата (30 секунд)..."
-    sleep 30
-    
-    echo "Проверка SSL сертификата:"
-    docker exec caddy caddy cert list || echo "Сертификат еще не получен, проверьте позже"
-    
+    echo "Приложение доступно по адресу: https://${DOMAIN}"    
 EOF
 
 echo ""
