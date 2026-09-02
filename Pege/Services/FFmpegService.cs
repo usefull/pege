@@ -1,6 +1,7 @@
 ﻿using Pege.Entities;
 using Pege.Resource;
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -94,79 +95,21 @@ namespace Pege.Services
             }
         }
 
-        public async Task<string> EncodeToAac(string srcFilePath, int targetSampleRate, string comment, CancellationToken cancellationToken)
+        public async Task<string> EncodeToAac(string srcFilePath, int targetSampleRate, string comment, CancellationToken cancellationToken = default)
         {
             var outputFilePath = Path.Combine(Path.GetTempPath(), $"output_{Guid.NewGuid()}.m4a");
-            var commentMetadata = !string.IsNullOrWhiteSpace(comment) ? $"-metadata comment=\"{comment}\"" : string.Empty;
+            var commentMetadata = !string.IsNullOrWhiteSpace(comment)
+                ? $"-metadata comment=\"{comment}\""
+                : string.Empty;
 
-            // ПЕРВЫЙ ПРОХОД (АНАЛИЗ)
-            string pass1Arguments = $"-i \"{srcFilePath}\" -af loudnorm=I=-18:TP=-1.5:print_format=json -f null -";
+            string arguments = $"-i \"{srcFilePath}\" -ar {targetSampleRate} -c:a libfdk_aac -vbr 4 -vn -movflags +faststart {commentMetadata} \"{outputFilePath}\"";
 
-            var pass1ErrorBuilder = new StringBuilder();
-            using (var process1 = new Process
+            using var process = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = _ffmpegPath,
-                    Arguments = pass1Arguments,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    StandardErrorEncoding = Encoding.UTF8
-                }
-            })
-            {
-                process1.ErrorDataReceived += (sender, e) => { if (!string.IsNullOrEmpty(e.Data)) pass1ErrorBuilder.AppendLine(e.Data); };
-
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-
-                LoudNormAnalysisStarted?.Invoke(this, EventArgs.Empty);
-                var progressEventTask = RunProgressEventAsync(LoudNormAnalysisProgress, cts.Token);
-
-                process1.Start();
-                process1.PriorityClass = ProcessPriorityClass.BelowNormal;
-                process1.BeginErrorReadLine();
-
-                try
-                {
-                    await process1.WaitForExitAsync(cts.Token);
-                }
-                finally
-                {
-                    cts.Cancel();
-                }
-                await progressEventTask;
-                LoudNormAnalysisFinished?.Invoke(this, EventArgs.Empty);
-
-                if (process1.ExitCode != 0)
-                {
-                    throw new Exception(string.Format(Error.LoudnormAnalysisError, srcFilePath, pass1ErrorBuilder));
-                }
-            }
-
-            // Извлекаем JSON из логов ffmpeg
-            string logOutput = pass1ErrorBuilder.ToString();
-            var jsonMatch = JsonRegex().Match(logOutput);
-            if (!jsonMatch.Success)
-            {
-                throw new Exception(string.Format(Error.LoudnormAnalysisError, srcFilePath, Error.UnableReadAnalysisResults));
-            }
-
-            // Парсим замеры
-            var measurements = JsonSerializer.Deserialize<LoudnormOutput>(jsonMatch.Value);
-
-            // ВТОРОЙ ПРОХОД (КОДИРОВАНИЕ)
-            // Подставляем замеры в параметры фильтра loudnorm
-            string loudnormAf = $"-af loudnorm=I=-18:TP=-1.5:linear=true:measured_i={measurements.InputI}:measured_tp={measurements.InputTp}:measured_lra={measurements.InputLra}:measured_thresh={measurements.InputThresh}";
-
-            string pass2Arguments = $"-i \"{srcFilePath}\" -ar {targetSampleRate} {loudnormAf} -c:a libfdk_aac -vbr 4 -vn -movflags +faststart {commentMetadata} \"{outputFilePath}\"";
-
-            using var process2 = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = _ffmpegPath,
-                    Arguments = pass2Arguments,
+                    Arguments = arguments,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
@@ -175,8 +118,13 @@ namespace Pege.Services
                     StandardErrorEncoding = Encoding.UTF8
                 }
             };
+
             var errorBuilder = new StringBuilder();
-            process2.ErrorDataReceived += (sender, e) => { if (!string.IsNullOrEmpty(e.Data)) errorBuilder.AppendLine(e.Data); };
+            process.ErrorDataReceived += (sender, e) =>
+            {
+                if (!string.IsNullOrEmpty(e.Data))
+                    errorBuilder.AppendLine(e.Data);
+            };
 
             try
             {
@@ -185,22 +133,23 @@ namespace Pege.Services
                 EncodingStarted?.Invoke(this, EventArgs.Empty);
                 var progressEventTask = RunProgressEventAsync(EncodingProgress, cts.Token);
 
-                process2.Start();
-                process2.PriorityClass = ProcessPriorityClass.BelowNormal;
-                process2.BeginErrorReadLine();
+                process.Start();
+                process.PriorityClass = ProcessPriorityClass.BelowNormal;
+                process.BeginErrorReadLine();
 
                 try
                 {
-                    await process2.WaitForExitAsync(cts.Token);
+                    await process.WaitForExitAsync(cts.Token);
                 }
                 finally
                 {
                     cts.Cancel();
                 }
+
                 await progressEventTask;
                 EncodingFinished?.Invoke(this, EventArgs.Empty);
 
-                if (process2.ExitCode != 0)
+                if (process.ExitCode != 0)
                 {
                     throw new Exception(string.Format(Error.TrackEncodingError, srcFilePath, errorBuilder));
                 }
@@ -209,7 +158,12 @@ namespace Pege.Services
             }
             finally
             {
-                try { if (!process2.HasExited) process2.Kill(entireProcessTree: true); } catch { }
+                try
+                {
+                    if (!process.HasExited)
+                        process.Kill(entireProcessTree: true);
+                }
+                catch { }
             }
         }
 
