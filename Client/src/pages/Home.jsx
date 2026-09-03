@@ -261,7 +261,7 @@ const Home = () => {
                             {fromFlac && <FlacLabel></FlacLabel>}
                         </MarqueeText></div>
                         <div className='artist'><MarqueeText>{artist}</MarqueeText></div>
-                        {streamNext && <div className='next'><MarqueeText><u>Next:</u>&nbsp;{streamNext}</MarqueeText></div>}
+                        {streamNext && <div className='next'><MarqueeText><u>Next</u>:&nbsp;{streamNext}</MarqueeText></div>}
                     </>}
                 </div>
             </div>
