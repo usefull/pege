@@ -1,0 +1,8 @@
+@use 'vars' as *;
+
+:export {
+    tgColorWhite:           $color-white;
+    tgColorText:            $color-text;
+    tgColorBkg:             $color-bkg;
+    tgColorBkgLight:        $color-bkg-light;
+}

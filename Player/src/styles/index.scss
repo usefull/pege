@@ -1,0 +1,71 @@
+@use 'vars' as *;
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    min-height: 100vh;
+    background: $color-bkg-light;
+    background-repeat: no-repeat;
+
+    #root {
+        min-height: 100vh;
+    }
+}
+
+/* Вертиальная ориентация */
+@media (orientation: portrait) or ((orientation: landscape) and (min-height: $sz-max-landscape-height)) {
+    body {
+        background-image:
+            linear-gradient(to right,
+                $color-bkg 0%,                    
+                transparent 100%
+            ),
+            linear-gradient(to left,
+                $color-bkg 0%,                    
+                transparent 100%
+            ),
+            radial-gradient(
+                circle at 50% 50%,
+                $color-bkg-light 0%,
+                $color-bkg 100%
+            );
+        
+        background-size:
+            20% 100%,
+            20% 100%,
+            100% 100%;
+            
+        background-position:
+            left top,
+            right top,
+            center top;
+        }
+}
+
+/* Горизонтальная ориентация */
+@media (orientation: landscape) and (max-height: $sz-max-landscape-height) {
+    body {
+        background-image:
+            linear-gradient(to left,
+                $color-bkg 0%,                    
+                transparent 100%
+            ),
+            radial-gradient(
+                circle at 100px 50%,
+                $color-bkg-light 0%,
+                $color-bkg 100%
+            );
+            
+        background-size:
+            20% 100%,
+            100% 100%;
+            
+        background-position:
+            right top,
+            center top;
+    }
+}

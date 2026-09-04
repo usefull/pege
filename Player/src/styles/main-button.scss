@@ -1,0 +1,133 @@
+@use 'vars' as *;
+
+.main-button {
+    position: relative;
+    font-size: 25px;
+
+    .outer {
+        position: absolute;
+        left: 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: 50%;
+        z-index: 1;
+
+        box-shadow: 0 0 0.15em 1.5em #{$color-text}22;
+    }
+
+    .wave {
+        position: absolute;
+        left: 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: 50%;
+
+        box-shadow:
+            0 0 0.15em 0 $color-bkg-light,
+            0 0 0 0 #{$color-text}99;
+    }
+
+    svg {
+        --color1: #5d4a1fa0;
+        --color2: #5d4a1f;
+        position: absolute;
+        left: 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 100;
+        cursor:pointer;
+
+        &:hover {
+            --color1: #5d4a1f90;
+        }
+    }
+
+    &.on {
+        .outer {
+            animation:
+                outerCollaps 0.05s linear forwards,
+                outerExpand 1.4s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
+        }
+
+        .wave {
+            animation: wave 1s linear forwards;
+        }
+    }
+
+    &.off {
+        .outer {
+            animation:
+                outerSqueeze 0.1s cubic-bezier(0.7, 0, 0.84, 0.16) forwards,
+                outerUnsqueeze 0.1s cubic-bezier(0.7, 0, 0.84, 0.16) 0.1s forwards;
+        }
+
+        .wave {
+            animation: miniWave 0.5s linear 0.2s forwards;
+        }
+    }
+}
+
+@keyframes outerCollaps {
+    0% {
+        box-shadow: 0 0 0.15em 1.5em #{$color-text}22;
+    }
+    100% {
+        box-shadow: 0 0 0.15em 0 #{$color-text}22;
+    }
+}
+@keyframes outerExpand {
+    0% {
+        box-shadow: 0 0 0.15em 0 #{$color-text}22;
+    }
+    100% {
+        box-shadow: 0 0 0.15em 1.5em #{$color-text}22;
+    }
+}
+@keyframes outerSqueeze {
+    0% {
+        box-shadow: 0 0 0.15em 1.5em #{$color-text}22;
+    }
+    100% {
+        box-shadow: 0 0 0.15em 1em #{$color-text}22;
+    }
+}
+@keyframes outerUnsqueeze {
+    0% {
+        box-shadow: 0 0 0.15em 1em #{$color-text}22;
+    }
+    100% {
+        box-shadow: 0 0 0.15em 1.5em #{$color-text}22;
+    }
+}
+
+@keyframes wave {
+    0% {
+        box-shadow:
+            0 0 0.15em 0 $color-bkg-light,
+            0 0 0 0 #{$color-text}99;
+            opacity: 1;
+    } 
+    100% {
+        box-shadow:
+            0 0 0.15em 4.5em $color-bkg-light,
+            0 0 0 4.5em #{$color-text}99;
+            opacity: 0;
+    }
+}
+@keyframes miniWave {
+    0% {
+        box-shadow:
+            0 0 0.15em 1.5em $color-bkg-light,
+            0 0 0 1.5em #{$color-text}99;
+            opacity: 1;
+    } 
+    100% {
+        box-shadow:
+            0 0 0.15em 3em $color-bkg-light,
+            0 0 0 3em #{$color-text}99;
+            opacity: 0;
+    }
+}

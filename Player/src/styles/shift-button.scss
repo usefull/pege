@@ -1,0 +1,59 @@
+@use 'vars' as *;
+
+.shift-button {
+    position: relative;
+    z-index: 100;
+
+    .bkg {
+        position: absolute;
+        top:0;
+        left:0;
+        bottom: 0;
+        right: 0;
+        z-index: 1;
+        background-color: $color-bkg-light;
+        border-radius: 40%;
+
+        box-shadow: 0 0 0.1em 1em #{$color-text}33,
+    }
+
+    svg {
+        --color1: #5d4a1fa0;
+        --color2: #5d4a1f;
+        position: absolute;
+        top:0;
+        left:0;
+        bottom: 0;
+        right: 0;
+        z-index: 100;
+
+        &:hover {
+            cursor: pointer;
+        }
+    }
+
+    &.active {
+        .bkg {
+            animation:
+                backSqueeze 0.05s cubic-bezier(0.7, 0, 0.84, 0.16) forwards,
+                backUnsqueeze 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.05s forwards;
+        }
+    }
+}
+
+@keyframes backSqueeze {
+    0% {
+        box-shadow: 0 0 0.1em 1em #{$color-text}33;
+    }
+    100% {
+        box-shadow: 0 0 0.1em 0.5em #{$color-text}33;
+    }
+}
+@keyframes backUnsqueeze {
+    0% {
+        box-shadow: 0 0 0.1em 0.5em #{$color-text}33;
+    }
+    100% {
+        box-shadow: 0 0 0.1em 1em #{$color-text}33;
+    }
+}
