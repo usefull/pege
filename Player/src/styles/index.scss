@@ -1,5 +1,14 @@
 @use 'vars' as *;
 
+@font-face {
+  font-family: 'Outfit';
+  src: url('./font/Outfit-VariableFont_wght.ttf') format('truetype-variations'),
+       url('./font/Outfit-VariableFont_wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -7,12 +16,27 @@
 }
 
 body {
+    font-family: 'Outfit', sans-serif;
     min-height: 100vh;
     background: $color-bkg-light;
+    color: $color-text;
     background-repeat: no-repeat;
 
     #root {
         min-height: 100vh;
+
+        .svg-button {
+            transition: opacity 0.25s, transform 0.25s;
+
+            &:hover {
+                opacity: 1;
+                cursor: pointer;
+            }
+
+            &:active {
+                transform: scale(0.8);
+            }
+        }
     }
 }
 

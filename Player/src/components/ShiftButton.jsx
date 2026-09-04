@@ -2,11 +2,11 @@ import { useState } from 'react';
 
 import '../styles/shift-button.scss'
 
-const ShiftButton = ({ dir, onClick }) => {
+const ShiftButton = ({ dir, title, onClick }) => {
 
     const [active, setActive] = useState(false);
     
-    return (<div className={`shift-button ${dir === 'back' ? 'back' : 'forward'} ${active ? 'active' : ''}`} onClick={() => {
+    return (<div title={title} className={`shift-button ${dir === 'back' ? 'back' : 'forward'} ${active ? 'active' : ''}`} onClick={() => {
         setActive(true);
         setTimeout(() => setActive(false), 500);
         if (onClick) onClick();

@@ -2,7 +2,7 @@ import { useImperativeHandle, useState } from 'react';
 
 import '../styles/main-button.scss'
 
-const MainButton = ({onClick, ref}) => {
+const MainButton = ({onClick, title, ref}) => {
 
     const [on, setOn] = useState(false);
 
@@ -16,7 +16,7 @@ const MainButton = ({onClick, ref}) => {
         click: () => toggle()
     }));    
     
-    return (<div className={`main-button ${on ? 'on' : 'off'}`} >
+    return (<div title={title} className={`main-button ${on ? 'on' : 'off'}`} >
         <div className='outer'></div>
         <div className='wave'></div>
         <svg fill="currentColor" fill-rule="evenodd" viewBox="0 0 47.8126 47.8126" onClick={toggle} xmlns="http://www.w3.org/2000/svg">

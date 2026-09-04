@@ -6,7 +6,8 @@
     overflow-x: scroll;
 
     .header-panel {
-        //background-color: cornflowerblue;
+        align-content: center;
+        align-self: center;
     }
 
     .control-panel {
@@ -23,8 +24,25 @@
     }
 
     .footer-panel {
-        //background-color:bisque;
+        align-content: center;
+        align-self: center;
     }
+}
+
+.list-button {
+    position:absolute;
+    top: 4px;
+    width:40px;
+    height:40px;
+    opacity: 0.55;
+}
+
+.eqalizer-button {
+    position:absolute;
+    right: 10px;
+    width:50px;
+    height:50px;
+    opacity: 0.55;
 }
 
 
@@ -65,6 +83,18 @@
             order: 2;
         }
     }
+
+    .list-button {
+        left: 10px;
+        right: unset;
+        bottom: unset;
+    }
+
+    .eqalizer-button {
+        top: 4px;
+        left:unset;
+        bottom: unset;
+    }
 }
 
 /* Горизонтальная ориентация */
@@ -95,6 +125,18 @@
                 }
             }
         }
+    }
+
+    .list-button {
+        left: unset;
+        right: 10px;
+        bottom: unset;
+    }
+
+    .eqalizer-button {
+        top: unset;
+        left:unset;
+        bottom: 4px;
     }
 }
 

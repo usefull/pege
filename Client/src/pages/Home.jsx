@@ -191,7 +191,7 @@ const Home = () => {
             <div className='header'>
                 <div>
                     <svg xmlns="http://www.w3.org/2000/svg" className={`button${showRadioPontList ? ' close' : ''}`} viewBox="0 0 20 20" stroke="none" fill="currentColor" onClick={toggleRadioPointList}>
-                        <path d="M1 4A1 1 0 001 6H19A1 1 0 0019 4Z" />
+                        <path d="M1 4A1 1 0 001 6H17A1 1 0 0017 4Z" />
                         <path d="M1 9A1 1 0 001 11H19A1 1 0 0019 9Z" />
                         <path d="M1 14A1 1 0 001 16H19A1 1 0 0019 14Z" />
                     </svg>
