@@ -1,17 +1,20 @@
-import { lazy, useState, useEffect, useRef } from 'react';
+import { useRef } from 'react';
+import { useNavigate } from 'react-router';
 
 import MainButton from '../components/MainButton';
+import FadeIn from '../components/FadeIn';
+import ShiftButton from '../components/ShiftButton';
 
 import '../styles/home.scss'
-import ShiftButton from '../components/ShiftButton';
 
 const SERVER_ORIGIN = import.meta.env.VITE_SERVER_ORIGIN === 'DYNAMIC' ? window.location.origin : import.meta.env.VITE_SERVER_ORIGIN;
 
 const Home = () => {
 
+    const navigate = useNavigate();
     const mainButtonRef = useRef(null);
     
-    return (<>
+    return (<FadeIn>
         <div className="home-container">
             <div className="control-panel">
                 <ShiftButton dir='back' title="Prev stream"></ShiftButton>
@@ -21,11 +24,9 @@ const Home = () => {
             <div className="header-panel" onClick={() => mainButtonRef.current.click()}>header</div>
             <div className="footer-panel">footer</div>
         </div>
-        <div className='svg-button list-button' title="Stream list">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 17 17" stroke="none" fill="currentColor">
-                <path d="M1 3A1 1 0 001 5H16A1 1 0 0016 3Z" />
-                <path d="M1 8A1 1 0 001 10H16A1 1 0 0016 8Z" />
-                <path d="M1 13A1 1 0 001 15H16A1 1 0 0016 13Z" />
+        <div className='svg-button list-button' title="Stream list" onClick={() => navigate(`/streams`)}>
+            <svg viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" xmlns="http://www.w3.org/2000/svg">
+                <path d="M5 7C5 6.44772 5.44772 6 6 6H18C18.5523 6 19 6.44772 19 7C19 7.55228 18.5523 8 18 8H6C5.44772 8 5 7.55228 5 7ZM5 12C5 11.4477 5.44772 11 6 11H18C18.5523 11 19 11.4477 19 12C19 12.5523 18.5523 13 18 13H6C5.44772 13 5 12.5523 5 12ZM5 17C5 16.4477 5.44772 16 6 16H18C18.5523 16 19 16.4477 19 17C19 17.5523 18.5523 18 18 18H6C5.44772 18 5 17.5523 5 17Z"/>
             </svg>
         </div>
         <div className='svg-button eqalizer-button' title="Equalizer">
@@ -39,7 +40,7 @@ const Home = () => {
                 <path d="M18 10A1 1 0 0020 10 1 1 0 0018 10" />
             </svg>
         </div>
-    </>);
+    </FadeIn>);
 };
 
 export default Home;

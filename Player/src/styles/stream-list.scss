@@ -1,0 +1,158 @@
+@use 'vars' as *;
+
+.streams-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    bottom:0;
+    top:0;
+    left:0;
+    right: 0;
+
+    .header {        
+        display: flex;
+        position: relative;
+
+        .go-back {
+            position: absolute;
+            z-index: 1;
+            top: 0;
+            left: 0;
+
+            svg {
+                margin: 10px;
+                height: 30px;
+                width: 30px;;
+            }
+        }
+
+        .filter-edit {
+            margin: 0 8px;
+            max-height: 35px;
+        }
+
+        span {
+            font-size: 25px;
+            line-height: 50px;
+            display: block;
+            text-align: center;;
+            opacity: 0.7;
+        }
+    }
+
+    .list {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        margin: 8px;
+        position: relative;
+        padding-top: 5px;
+        padding-bottom: 5px;
+
+        .item {
+            font-size: 20px;
+            padding-top: 4px;
+            padding-bottom: 15px;
+            padding-left:8px;
+            border-left: 8px solid transparent;
+            border-bottom: 1px solid #{$color-text}33;
+
+            &.select {
+                border-left: 8px solid $color-text;
+                border-top: 1px solid $color-text;
+                border-bottom: 1px solid $color-text;
+
+                &:first-child {
+                    border-top: 1px solid $color-text
+                }
+                &:last-child {
+                    border-bottom: 1px solid $color-text
+                }
+
+                div {
+                    &:nth-child(1) {
+                        font-weight: bold;
+                    }
+                }
+            }
+
+            &:first-child {
+                border-top: 1px solid transparent
+            }
+            
+            &:last-child {
+                border-bottom: 1px solid transparent
+            }
+
+            div {
+                &:nth-child(1) {
+                    font-weight: 500;
+                }
+                &:nth-child(2) {
+                    opacity: 0.6;
+                    font-size: 17px;
+                }
+            }
+        }
+    }
+}
+
+/* Вертиальная ориентация */
+@media (orientation: portrait) or ((orientation: landscape) and (min-height: $sz-max-landscape-height)) {
+    .streams-container {
+        .header {
+            flex-wrap: wrap;
+            span {
+                min-width: calc(100vw - 50px);
+                flex: 1;
+            }
+            .filter-edit {
+                flex: 1 1 100vw;
+            }
+        }
+    }
+}
+
+/* Горизонтальная ориентация */
+@media (orientation: landscape) and (max-height: $sz-max-landscape-height)  {
+    .streams-container {
+        .header {
+            flex-wrap: nowrap;
+
+            span {
+                flex: 0 50vw;
+            }
+            .filter-edit {
+                flex: 0 50vw;
+                margin-top: 8px;
+            }
+        }
+    }
+}
+@media (orientation: landscape) and (max-height: $sz-max-landscape-height) and (max-width: 400px)  {
+    .streams-container {
+        .header {
+
+            span {
+                display: none;
+            }
+            .filter-edit {
+                margin-left: 50px;
+            }
+        }
+    }
+}
+
+@media (max-width: 180px) {
+    .streams-container {
+        .header {
+            span {
+                padding-left: 50px;
+                width: auto;
+                overflow-x: hidden;
+                text-overflow: ellipsis;
+            }
+        }
+    }
+}
