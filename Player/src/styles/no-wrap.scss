@@ -1,0 +1,34 @@
+@use 'vars' as *;
+
+.no-wrap {
+    display: block;
+    width: 100%;
+    overflow: hidden;
+
+    &.hidden {
+        visibility: hidden; 
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    &__inner {
+        display: inline-flex; // Чтобы scrollWidth точно отражал длину контента
+        gap: 8px;
+        align-items: center;
+        white-space: nowrap;   // Запрещаем перенос строк, чтобы замерить переполнение
+    }
+}
+
+/* Вертиальная ориентация */
+@media (orientation: portrait) or ((orientation: landscape) and (min-height: $sz-max-landscape-height)) {
+    .no-wrap {
+        text-align: center;
+    }
+}
+
+/* Горизонтальная ориентация */
+@media (orientation: landscape) and (max-height: $sz-max-landscape-height) {
+    .no-wrap {
+        text-align: left;
+    }
+}

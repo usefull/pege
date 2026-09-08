@@ -1,0 +1,72 @@
+@use 'vars' as *;
+
+.marquee-container {
+    width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    box-sizing: border-box;
+    position: relative;
+
+    --gap: 8px; 
+
+    span {
+        display: inline-block;
+        will-change: transform;
+
+        padding-right: var(--gap);
+        padding-left: var(--gap); 
+    }
+
+    .shadow {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1;
+    }
+}
+
+@keyframes scroll-text {
+  0% {
+    transform: translate(var(--gap), 0);
+  }
+  100% {
+    transform: translate(calc(-100% + var(--container-width) - var(--gap)), 0);
+  }
+}
+
+/* Вертиальная ориентация */
+@media (orientation: portrait) or ((orientation: landscape) and (min-height: $sz-max-landscape-height)) {
+    .marquee-container {
+
+        &.is-overflowing {
+            span {
+                animation: scroll-text 5s ease-in-out infinite alternate;
+            }
+        }
+
+        .shadow {
+            background: 
+                linear-gradient(to right, $color-bkg, transparent 20px),
+                linear-gradient(to left, $color-bkg, transparent 20px);
+        }
+    }
+}
+
+/* Горизонтальная ориентация */
+@media (orientation: landscape) and (max-height: $sz-max-landscape-height) {
+    .marquee-container {
+
+        &.is-overflowing {
+            span {
+                animation: none;
+            }
+        }
+
+        .shadow {
+            background: 
+                linear-gradient(to left, $color-bkg, transparent 40px);
+        }
+    }
+}

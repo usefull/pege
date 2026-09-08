@@ -19,11 +19,11 @@ const MainButton = ({onClick, title, ref}) => {
     return (<div title={title} className={`main-button ${on ? 'on' : 'off'}`} >
         <div className='outer'></div>
         <div className='wave'></div>
-        <svg fill="currentColor" fill-rule="evenodd" viewBox="0 0 47.8126 47.8126" onClick={toggle} xmlns="http://www.w3.org/2000/svg">
+        <svg fill="currentColor" fillRule="evenodd" viewBox="0 0 47.8126 47.8126" onClick={toggle} xmlns="http://www.w3.org/2000/svg">
             <defs>
                 <radialGradient id="grad" cx="50%" cy="50%" r="60%" >
-                    <stop offset="0%" stop-color="var(--color1)" />
-                    <stop offset="100%" stop-color="var(--color2)" />
+                    <stop offset="0%" stopColor="var(--color1)" />
+                    <stop offset="100%" stopColor="var(--color2)" />
                 </radialGradient>
             </defs>
             <path fill="url(#grad)" d={on

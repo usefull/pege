@@ -3,11 +3,31 @@
 .home-container {
     min-height: 100vh;
     min-width: 155px;
-    overflow-x: scroll;
+    overflow-x: hidden;
 
     .header-panel {
-        align-content: center;
-        align-self: center;
+        display: flex;
+        flex-direction: column;
+        width: 100vw;
+
+        .marquee-container {
+            font-size: 30px;
+            font-weight: 600;
+        }
+
+        .no-wrap {
+            &__inner {
+                span {
+                    font-size: 20px;
+                }
+                svg {
+                    width: 30px;
+                    height: 30px;
+                    --color1: #5d4a1fa0;
+                    --color2: #5d4a1f;
+                }
+            }
+        }
     }
 
     .control-panel {
@@ -24,8 +44,25 @@
     }
 
     .footer-panel {
-        align-content: center;
-        align-self: center;
+        display: flex;
+        flex-direction: column;
+        gap:5px;
+            justify-content: center;
+
+        .marquee-container {
+            font-size: 23px;
+            font-weight: 500;
+
+            &:nth-child(2) {
+                font-size: 20px;
+                font-weight: 400;
+            }
+
+            &:nth-child(3) {
+                font-size: 16px;
+                font-weight: 300;
+            }
+        }
     }
 }
 
@@ -50,8 +87,12 @@
         display: flex;
         flex-direction: column;
 
-        div {
+        .header-panel {
             flex: 1;
+            justify-content: center;
+            .marquee-container {
+                text-align: center;
+            }
         }
         
         .control-panel {
@@ -59,10 +100,6 @@
             flex-direction: row;
             flex: 0 155px;
             max-height: 155px;
-
-            .main-button {
-                
-            }
 
             .shift-button {
                 
@@ -78,7 +115,12 @@
         }
 
         .footer-panel {
+            flex: 1;
             order: 2;
+
+            .marquee-container {
+                text-align: center;
+            }
         }
     }
 
@@ -101,6 +143,19 @@
         display: grid;
         grid-template-columns: 200px 1fr;
         grid-template-rows: 1fr 1fr;
+        overflow-x: hidden;
+
+        .header-panel {
+            width: calc(100vw - 200px);
+            justify-content: end;
+            padding-bottom: 15px;
+
+            .no-wrap {
+                &__inner {
+                    padding-left: 10px;
+                }
+            }
+        }
 
         .control-panel {
             grid-row: 1 / 3;
@@ -123,6 +178,12 @@
                 }
             }
         }
+
+        .footer-panel {
+            width: calc(100vw - 200px);
+            justify-content: start;
+            padding-top: 15px;
+        }
     }
 
     .list-button {
@@ -138,6 +199,40 @@
     }
 }
 
+@media (orientation: landscape) and (max-height: 256px)
+{
+    .shift-button {
+        display: none;
+    }
+
+    .home-container {
+        .header-panel {
+            .no-wrap {
+                display: none;
+            }
+        }
+
+        .footer-panel {
+            .marquee-container {
+                &:nth-child(3) {
+                    display: none;
+                }
+            }
+        }
+    }
+}
+
+@media (orientation: landscape) and (max-height: 210px) {
+    .home-container {
+        .header-panel {
+            width: calc(100vw - 250px);
+        }
+        .footer-panel {
+            width: calc(100vw - 250px);
+        }
+    }
+}
+
 @media (max-width: 270px)
 {
     .shift-button {
@@ -148,13 +243,6 @@
 @media (max-width: 155px)
 {
     .home-container {
-        display: none;
-    }
-}
-
-@media (max-height: 240px)
-{
-    .shift-button {
         display: none;
     }
 }

@@ -1,11 +1,11 @@
 @use 'vars' as *;
 
 @font-face {
-  font-family: 'Outfit';
-  src: url('./font/Outfit-VariableFont_wght.ttf') format('truetype-variations'),
-       url('./font/Outfit-VariableFont_wght.ttf') format('truetype');
+  font-family: 'Geologica';
+  src: url('./font/Geologica-VariableFont_CRSV,SHRP,slnt,wght.ttf') format('truetype-variations');
   font-weight: 100 900;
-  font-style: normal;
+  font-stretch: 50% 200%;
+  font-style: oblique 0deg 15deg;
   font-display: swap;
 }
 
@@ -16,7 +16,7 @@
 }
 
 body {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Geologica', sans-serif;
     min-height: 100vh;
     background: $color-bkg-light;
     color: $color-text;
@@ -48,7 +48,7 @@ body {
             border-radius: 3px;
 
             input {
-                font-family: 'Outfit', sans-serif;
+                font-family: 'Geologica', sans-serif;
                 font-size: 20px;
                 color: $color-text;
                 flex: 1;

@@ -12,6 +12,7 @@ const formatDate = (date) => {
 }
 
 export default defineConfig({
+    assetsInclude: ['**/Geologica-VariableFont_CRSV,SHRP,slnt,wght.ttf'],
   plugins: [
     react(),
     VitePWA({
