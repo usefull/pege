@@ -10,34 +10,10 @@
     left:0;
     right: 0;
 
-    .header {        
-        display: flex;
-        position: relative;
-
-        .go-back {
-            position: absolute;
-            z-index: 1;
-            top: 0;
-            left: 0;
-
-            svg {
-                margin: 10px;
-                height: 30px;
-                width: 30px;;
-            }
-        }
-
+    .page-header {
         .filter-edit {
             margin: 0 8px;
             max-height: 35px;
-        }
-
-        span {
-            font-size: 25px;
-            line-height: 50px;
-            display: block;
-            text-align: center;;
-            opacity: 0.7;
         }
     }
 
@@ -101,12 +77,7 @@
 /* Вертиальная ориентация */
 @media (orientation: portrait) or ((orientation: landscape) and (min-height: $sz-max-landscape-height)) {
     .streams-container {
-        .header {
-            flex-wrap: wrap;
-            span {
-                min-width: calc(100vw - 50px);
-                flex: 1;
-            }
+        .page-header {
             .filter-edit {
                 flex: 1 1 100vw;
             }
@@ -117,12 +88,7 @@
 /* Горизонтальная ориентация */
 @media (orientation: landscape) and (max-height: $sz-max-landscape-height)  {
     .streams-container {
-        .header {
-            flex-wrap: nowrap;
-
-            span {
-                flex: 0 50vw;
-            }
+        .page-header {
             .filter-edit {
                 flex: 0 50vw;
                 margin-top: 8px;
@@ -131,14 +97,19 @@
     }
 }
 @media (orientation: landscape) and (max-height: $sz-max-landscape-height) and (max-width: 400px)  {
-    .streams-container {
-        .header {
+    body {
+        #root {
+            .streams-container {
+                .page-header {
 
-            span {
-                display: none;
-            }
-            .filter-edit {
-                margin-left: 50px;
+                    .title {
+                        display: none;
+                    }
+                    .filter-edit {
+                        margin-left: 50px;
+                        flex: 0 calc(100vw - 50px)
+                    }
+                }
             }
         }
     }
@@ -146,8 +117,8 @@
 
 @media (max-width: 180px) {
     .streams-container {
-        .header {
-            span {
+        .page-header {
+            .title {
                 padding-left: 50px;
                 width: auto;
                 overflow-x: hidden;

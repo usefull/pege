@@ -68,6 +68,32 @@ body {
                 width: 25px;
             }
         }
+
+        .page-header {
+            display: flex;
+            position: relative;
+
+            .go-back {
+                position: absolute;
+                z-index: 1;
+                top: 0;
+                left: 0;
+
+                svg {
+                    margin: 10px;
+                    height: 30px;
+                    width: 30px;;
+                }
+            }
+
+            .title {
+                font-size: 25px;
+                line-height: 50px;
+                display: block;
+                text-align: center;;
+                opacity: 0.7;
+            }
+        }
     }
 }
 
@@ -98,7 +124,15 @@ body {
             left top,
             right top,
             center top;
+        
+        .page-header {
+            flex-wrap: wrap;
+            .title {
+                min-width: calc(100vw - 50px);
+                flex: 1;
+            }
         }
+    }
 }
 
 /* Горизонтальная ориентация */
@@ -122,5 +156,13 @@ body {
         background-position:
             right top,
             center top;
+
+        .page-header {
+            flex-wrap: nowrap;
+
+            .title {
+                flex: 0 50vw;
+            }
+        }
     }
 }

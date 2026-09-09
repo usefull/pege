@@ -1,0 +1,77 @@
+@use 'vars' as *;
+
+.toggle-switch {
+    font-size: 23px;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    display: inline-flex;
+    gap: 0.25em;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+
+    &.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+        position: absolute;
+    }
+
+    .slider {
+        font-size: inherit;
+        position: relative;
+        display: inline-block;
+        border-radius: 1em;
+        height: 1em;
+        background: radial-gradient(circle at 25% 50%, #{$color-text}66, #{$color-text}11);
+        width: 2em;
+
+        &.on {
+            background: radial-gradient(circle at 75% 50%, $color-text, #{$color-text}99);
+        }
+    }
+
+    .handle {
+        position: absolute;
+        height: 1em;
+        min-width: 1em;
+        transform: translate(0, 0);
+        background: radial-gradient($color-bkg, $color-bkg-light);
+        border-radius: 50%;
+        transition: transform 0.15s ease;
+        box-shadow:  0 0 0.2em $color-text;
+
+        &.on {
+            transform: translate(1em, 0);
+        }
+    }
+
+    .toggle-label {
+        flex: 0;
+        display: flex;
+        height: 1em;
+        align-items: center;
+        line-height: 0.9em;
+        color: inherit;
+        cursor: pointer;
+        white-space: nowrap;
+        
+        &.on::after, &.off::after {
+            font-size: 0.6em;
+            font-weight: 300;
+        }
+
+        &.on::after {
+            content: "on";
+        }
+
+        &.off::after {
+            content: "off";
+        }
+    }
+}

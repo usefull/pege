@@ -1,0 +1,68 @@
+@use 'vars' as *;
+
+.equalizer-container {
+    overflow: hidden;
+    .page-header {
+        padding-bottom: 5px;
+        .toggle-switch-container {
+            display:flex;
+        }
+    }
+}
+
+/* Вертиальная ориентация */
+@media (orientation: portrait) or ((orientation: landscape) and (min-height: $sz-max-landscape-height)) {
+    .equalizer-container {
+        .page-header {
+            .toggle-switch-container {
+                flex: 1 1 100vw;
+                justify-content: center;
+            }
+        }
+    }
+}
+
+/* Горизонтальная ориентация */
+@media (orientation: landscape) and (max-height: $sz-max-landscape-height)  {
+    .equalizer-container {
+        .page-header {
+            .title {
+                flex: 1;
+            }
+            .toggle-switch-container {
+                flex: 0 7em;
+            }
+        }
+    }
+}
+@media (orientation: landscape) and (max-height: $sz-max-landscape-height) and (max-width: 315px)  {
+    body {
+        #root {
+            .equalizer-container {
+                .page-header {
+                    min-height: 50px;
+                    .title {
+                        display: none;
+                    }
+                    .toggle-switch-container {
+                        margin-left: 50px;
+                        flex: 0 calc(100vw - 50px)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@media (max-width: 200px) {
+    .equalizer-container {
+        .page-header {
+            .title {
+                padding-left: 50px;
+                width: auto;
+                overflow-x: hidden;
+                text-overflow: ellipsis;
+            }
+        }
+    }
+}
