@@ -22,6 +22,49 @@ body {
     color: $color-text;
     background-repeat: no-repeat;
 
+    input[type=range] {
+        -webkit-appearance: none;
+        appearance: none;
+        background: transparent;
+        border: none;
+        outline: none;
+        margin: 0;
+
+        @mixin tumb-styles {
+            background-color: $color-bkg-light;
+            box-shadow:
+                0 0 0.3em white inset,
+                0 0 0.25em $color-text;
+            cursor: pointer;
+            border: 1px $color-bkg solid;
+            border-radius: 0;
+        }
+
+        &::-webkit-slider-thumb {
+            @include tumb-styles; 
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        &::-moz-range-thumb {
+            @include tumb-styles; 
+        }
+
+        @mixin track-styles {
+            background-color: $color-bkg-light;
+            border-radius: 0.3em;
+            box-shadow: 0 0 0.3em $color-text inset,
+        }
+
+        &::-webkit-slider-runnable-track {
+             @include track-styles; 
+        }
+
+        &::-moz-range-track {
+            @include track-styles;
+        }
+    }
+
     #root {
         min-height: 100vh;
 
@@ -132,6 +175,32 @@ body {
                 flex: 1;
             }
         }
+
+        input[type=range] {
+            writing-mode: horizontal-tb;
+
+            @mixin tumb-styles {
+                width: 1em;
+                height: 2em;
+            }
+
+            &::-webkit-slider-thumb {
+                @include tumb-styles;
+                transform: translateY(-0.75em);
+            }
+
+            &::-moz-range-thumb {
+                @include tumb-styles; 
+            }
+
+            &::-webkit-slider-runnable-track {
+                height: 0.5em;
+            }
+
+            &::-moz-range-track {
+                height: 0.5em;
+            }
+        }
     }
 }
 
@@ -162,6 +231,33 @@ body {
 
             .title {
                 flex: 0 50vw;
+            }
+        }
+
+        input[type=range] {
+            writing-mode: vertical-rl;
+            direction: rtl;
+
+            @mixin tumb-styles {
+                width: 2em;
+                height: 1em;
+            }
+
+            &::-webkit-slider-thumb {
+                transform: translateX(0.75em);
+                @include tumb-styles; 
+            }
+
+            &::-moz-range-thumb {
+                @include tumb-styles; 
+            }
+
+            &::-webkit-slider-runnable-track {
+                width: 0.5em;
+            }
+
+            &::-moz-range-track {
+                width: 0.5em;
             }
         }
     }

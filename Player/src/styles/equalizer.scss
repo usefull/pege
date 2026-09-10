@@ -2,10 +2,52 @@
 
 .equalizer-container {
     overflow: hidden;
+    display:flex;
+    min-height: 100vh;
+    flex-direction: column;
     .page-header {
         padding-bottom: 5px;
         .toggle-switch-container {
             display:flex;
+        }
+    }
+
+    .grains {
+        flex: 1;
+        display: flex;
+        justify-content:space-evenly;
+
+        .eq-grain {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+
+            input {
+                z-index: 1;
+            }
+
+            .zero-cutoff {
+                position: absolute;
+                border: 1px solid #{$color-text}77;
+            }
+
+            .hz-label {
+                position: relative;
+                display: flex;
+                justify-content: center;
+                font-size: 0.8em;
+                font-weight: 300;
+
+                .min-cutoff {
+                    position: absolute;
+                    border: 1px solid #{$color-text}77;
+                }
+                .max-cutoff {
+                    position: absolute;
+                    border: 1px solid #{$color-text}77;
+                }
+            }
         }
     }
 }
@@ -17,6 +59,50 @@
             .toggle-switch-container {
                 flex: 1 1 100vw;
                 justify-content: center;
+            }
+        }
+
+        .grains {
+             flex-direction: column;
+             
+            .eq-grain {
+                input {
+                    width: 70vw;
+                    height: 3em;
+                }
+
+                .zero-cutoff {
+                    top:0;
+                    left:0;
+                    right:50%;
+                    bottom: 0;
+                    border-bottom: none;
+                    border-top: none;
+                    border-left: none;
+                }
+
+                .hz-label {
+                    flex-direction: column;
+
+                    .min-cutoff {
+                        top:0;
+                        left:0;
+                        right:calc(0em - 0.5em - 5px);
+                        bottom: 0;
+                        border-bottom: none;
+                        border-top: none;
+                        border-left: none;
+                    }
+                    .max-cutoff {
+                        top:0;
+                        left:calc(0em - 0.5em - 5px);
+                        right:0;
+                        bottom: 0;
+                        border-bottom: none;
+                        border-top: none;
+                        border-right: none;
+                    }
+                }
             }
         }
     }
@@ -31,6 +117,50 @@
             }
             .toggle-switch-container {
                 flex: 0 7em;
+            }
+        }
+
+        .grains {
+            flex-direction: row;
+            .eq-grain {
+                flex-direction: column;
+                input {
+                    height: 70vh;
+                    width: 3em;
+                }
+
+                .zero-cutoff {
+                    top:50%;
+                    left:0;
+                    right:0;
+                    bottom: 0;
+                    border-bottom: none;
+                    border-right: none;
+                    border-left: none;
+                }
+
+                .hz-label {
+                    flex-direction: row;
+
+                    .min-cutoff {
+                        top:0;
+                        left:0;
+                        right:0;
+                        bottom: calc(0em - 0.5em - 4px);
+                        border-right: none;
+                        border-top: none;
+                        border-left: none;
+                    }
+                    .max-cutoff {
+                        top:calc(0em - 0.5em - 4px);
+                        left:0;
+                        right:0;
+                        bottom: 0;
+                        border-right: none;
+                        border-bottom: none;
+                        border-left: none;
+                    }
+                }
             }
         }
     }
