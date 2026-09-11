@@ -32,7 +32,7 @@ const Equalizer = () => {
                         <span>62Hz</span>
                         <div className='min-cutoff'></div>
                     </div>
-                    <input type="range" min={-12} max={12} step={0.5}/>
+                    <input type="range" min={-12} max={12} step={0.5} onChange={e => console.log(e.target.value)}/>
                     <div className='hz-label'>
                         <span>62Hz</span>
                         <div className='max-cutoff'></div>

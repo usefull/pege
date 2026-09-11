@@ -4,6 +4,7 @@
     overflow: hidden;
     display:flex;
     min-height: 100vh;
+    min-width: 100vw;
     flex-direction: column;
     .page-header {
         padding-bottom: 5px;
@@ -16,12 +17,54 @@
         flex: 1;
         display: flex;
         justify-content:space-evenly;
+        margin: 0.8em 1.2em;
 
         .eq-grain {
             position: relative;
             display: flex;
             justify-content: center;
             gap: 4px;
+
+            &:first-child {
+                .zero-cutoff::after {
+                    position: absolute;
+                    font-size: 0.8em;
+                    font-weight: 300;
+                    content: "0";                    
+                }
+                .min-cutoff::after {
+                    position: absolute;
+                    font-size: 1em;
+                    font-weight: 300;
+                    content: "-12dB";                 
+                }
+                .max-cutoff::after {
+                    position: absolute;
+                    font-size: 1em;
+                    font-weight: 300;
+                    content: "+12dB";                 
+                }
+            }
+            &:last-child {
+                .zero-cutoff::after {
+                    position: absolute;
+                    font-size: 0.8em;
+                    font-weight: 300;
+                    content: "0";                    
+                }
+                .min-cutoff::after {
+                    position: absolute;
+                    font-size: 1em;
+                    font-weight: 300;
+                    content: "-12dB";                 
+                }
+                .max-cutoff::after {
+                    position: absolute;
+                    font-size: 1em;
+                    font-weight: 300;
+                    content: "+12dB";                 
+                }
+            }
 
             input {
                 z-index: 1;
@@ -71,6 +114,36 @@
                     height: 3em;
                 }
 
+                &:first-child {
+                    .zero-cutoff::after {
+                        right:-0.4em;
+                        bottom: 100%;                        
+                    }
+                    .min-cutoff::after {
+                        right: -1.3em;
+                        bottom: 100%;     
+                    }
+                    .max-cutoff::after {
+                        left: -1.8em;
+                        bottom: 100%;
+                    }
+                }
+
+                &:last-child {
+                    .zero-cutoff::after {
+                        right:-0.4em;
+                        top: 100%;                        
+                    }
+                    .min-cutoff::after {
+                        right: -1.3em;
+                        top: 100%;     
+                    }
+                    .max-cutoff::after {
+                        left: -1.8em;
+                        top: 100%;
+                    }
+                }
+
                 .zero-cutoff {
                     top:0;
                     left:0;
@@ -83,6 +156,7 @@
 
                 .hz-label {
                     flex-direction: column;
+                    min-width: 41px;
 
                     .min-cutoff {
                         top:0;
@@ -124,9 +198,44 @@
             flex-direction: row;
             .eq-grain {
                 flex-direction: column;
+
                 input {
-                    height: 70vh;
+                    height: calc(100vh - 125px);
                     width: 3em;
+                }
+
+                &:first-child {
+                    .zero-cutoff::after {
+                        left:-1em;
+                        top: -0.6em;                        
+                    }
+                    .min-cutoff::after {
+                        bottom: -0.65em;
+                        right: calc(100% + 2px);
+                        content: "+12dB"   
+                    }
+                    .max-cutoff::after {
+                        top: -0.65em;
+                        right: calc(100% + 2px);
+                        content: "-12dB"   
+                    }
+                }
+
+                &:last-child {
+                    .zero-cutoff::after {
+                        right:-1em;
+                        top: -0.6em;                        
+                    }
+                    .min-cutoff::after {
+                        bottom: -0.65em;
+                        left: calc(100% + 2px);
+                        content: "+12dB"   
+                    }
+                    .max-cutoff::after {
+                        top: -0.65em;
+                        left: calc(100% + 2px);
+                        content: "-12dB"   
+                    }
                 }
 
                 .zero-cutoff {
