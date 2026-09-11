@@ -25,7 +25,7 @@ const Home = () => {
                 <MarqueeText>WDR 2 Rheinland aktuell, Westdeutchscher Rundfunk Koeln</MarqueeText>
                 <NoWrap>
                     <span>United Kingdom 12345 uytrgf b jfyrggtts 87534323</span>
-                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" onClick={() => navigate(`/info`)}>
                         <defs>
                             <radialGradient id="info-button-grad" cx="50%" cy="50%" r="60%" >
                                 <stop offset="0%" stopColor="var(--color1)" />

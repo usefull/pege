@@ -1,0 +1,121 @@
+@use 'vars' as *;
+
+.info-container {
+    width: 100vw;
+    height: 100vh;
+    .page-header {
+        .tab-container {
+            font-size: 16px;
+            color: #{$color-text}cc;
+            display: flex;
+            align-items: center;
+
+            .tab-control {
+                display:flex;
+                flex-direction: row;
+                gap:5px;
+                max-height: 40px;
+                
+                padding: 5px;
+                box-shadow: 0 0 2px 2px #{$color-text}55;
+                border-radius: 20px;
+                background-color: $color-bkg;
+
+                .tab {
+                    display: flex;
+                    gap:3px;
+                    flex-direction: row;
+                    justify-content: center;
+                    min-width: 110px;
+                    padding:4px;
+                    border-radius: 15px;
+                    transition: background-color 0.3s, box-shadow 0.3s;
+
+                    svg {
+                        width: 21px;
+                        height: 21px;
+                    }
+
+                    &.selected {
+                        background-color: $color-bkg-light;
+                        box-shadow: 0 0 4px 1px #{$color-text}55;
+                        //color: $color-text;
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* Вертиальная ориентация */
+@media (orientation: portrait) or ((orientation: landscape) and (min-height: $sz-max-landscape-height)) {
+    .info-container {
+        .page-header {
+            .tab-container {
+                flex: 1 1 100vw;
+                justify-content: center;
+            }
+        }
+    }
+}
+
+/* Горизонтальная ориентация */
+@media (orientation: landscape) and (max-height: $sz-max-landscape-height) {
+    .info-container {
+        .page-header {
+            padding-right: 5px;
+            .title {
+                flex: 1;
+            }
+        }
+    }
+}
+
+@media (orientation: landscape) and (max-height: $sz-max-landscape-height) and (max-width: 385px)  {
+    body {
+        #root {
+            .info-container {
+                .page-header {
+                    min-height: 50px;
+                    .title {
+                        display: none;
+                    }
+                    .tab-container {
+                        margin-left: 50px;
+                    }
+                }
+            }
+        }
+    }
+}
+
+@media (max-width: 250px) {
+    .info-container {
+        overflow-x: hidden;
+        .page-header {
+            .tab-container {
+                .tab-control {
+                    .tab {
+                        min-width: 35px;
+                        span {
+                            display: none;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@media (max-width: 145px) {
+    .info-container {
+        .page-header {
+            .title {
+                padding-left: 50px;
+                width: auto;
+                overflow-x: hidden;
+                text-overflow: ellipsis;
+            }
+        }
+    }
+}
