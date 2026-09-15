@@ -15,7 +15,7 @@ const Splash = ({ isStarting, setIsReady }) => {
             logo.current.classList.add('hide');
             logo.current.addEventListener('animationend', onEnd);
         }
-    }, [isStarting])
+    }, [isStarting, setIsReady])
 
     return (
         <div className='splash'>

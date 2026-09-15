@@ -1,0 +1,2 @@
+export const SERVER_ORIGIN = import.meta.env.VITE_SERVER_ORIGIN === 'DYNAMIC' ? window.location.origin : import.meta.env.VITE_SERVER_ORIGIN;
+export const CENTRAL_FREQS = [62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];

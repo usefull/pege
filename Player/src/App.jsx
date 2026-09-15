@@ -1,6 +1,8 @@
 import { lazy, useEffect, useState } from 'react'
 import { Routes, Route } from 'react-router-dom'
 
+import { SERVER_ORIGIN } from './const';
+
 const Home = lazy(() => import('./pages/Home'))
 const StreamList = lazy(() => import('./pages/StreamList'))
 const Equalizer = lazy(() => import('./pages/Equalizer'))
@@ -13,7 +15,18 @@ const App = () => {
     const [isReady, setIsReady] = useState(false);
 
     useEffect(() => {
-        setTimeout(() => setIsStarting(false), 3000);
+        (async () => {
+            try {
+                const response = await fetch(SERVER_ORIGIN + '/api/stream/list');
+                const result = await response.json();
+                console.log(result);
+            } catch (error) {
+                //setCurrentRadioPoint(null);
+            }
+            finally {
+                setIsStarting(false);
+            }
+        })();
     }, []);
 
     return (!isReady ? <Splash isStarting={isStarting} setIsReady={setIsReady} /> :
