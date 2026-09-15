@@ -68,6 +68,13 @@ body {
     #root {
         min-height: 100vh;
 
+        .tile {
+            padding: 5px;
+            border-radius: 8px;
+            background-color: #{$color-bkg-light}66;
+            box-shadow: 0 0 5px 1px #{$color-text}22;
+        }
+
         .svg-button {
             opacity: 0.7;
             transition: opacity 0.25s, transform 0.25s;

@@ -40,7 +40,7 @@ const Home = () => {
                 <MarqueeText>Any Body Seen My Baby? (Remastered 2009)</MarqueeText>
                 <MarqueeText>Rolling Stones & Depeche Mode</MarqueeText>
                 <MarqueeText>
-                    <u>Next</u>:&nbsp;"Livin' On The Edge" by Aerosmith
+                    <u>Next up</u>:&nbsp;"Livin' On The Edge" by Aerosmith
                 </MarqueeText>
             </div>
         </div>

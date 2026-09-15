@@ -79,7 +79,7 @@ namespace Pege.Streaming
 
         public async Task<IStream> GetStreamAsync(string streamId)
         {
-            var streamInfo = GetStreamInfoAsync(streamId).GetAwaiter().GetResult()
+            var streamInfo = await GetStreamInfoAsync(streamId)
                 ?? throw new UnknownStreamException();
 
             if (!_streams.TryGetValue(streamInfo.Id!, out var stream))
@@ -91,25 +91,26 @@ namespace Pege.Streaming
         public async Task<StreamStatus?> GetStreamStatusAsync(string id)
         {
             IStream stream;
-            StreamStatus status;
+            StreamStatus? status;
 
             try
             {
                 stream = await GetStreamAsync(id);
                 status = stream.Status;
             }
-            catch (InvalidOperationException)
+            catch (StreamUnavailableException)
             {
                 using var db = dataContextFactory.CreateDbContext();
-                var info = await db.Streams.FirstOrDefaultAsync(s => s.Id == id.ToLower().Trim());
-                if (info == null) return null;
-
-                status = info.ToStatus();
+                var info = await GetStreamInfoAsync(id.ToLower());
+                status = info?.ToStatus();
             }
             catch
             {
                 throw;
             }
+
+            if (status == null)
+                throw new UnknownStreamException();
 
             return status;
         }

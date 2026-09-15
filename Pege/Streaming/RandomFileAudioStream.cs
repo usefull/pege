@@ -254,7 +254,7 @@ namespace Pege.Streaming
 <b>""{CastedStatus.Track}""</b>
 by <b>{CastedStatus.Artist}</b>
 
-<u>Next track</u>:
+<u>Next up</u>:
 <b>""{CastedStatus.NextTrack}""</b>
 by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
 

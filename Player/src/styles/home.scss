@@ -25,6 +25,7 @@
                     height: 30px;
                     --color1: #5d4a1fa0;
                     --color2: #5d4a1f;
+                    cursor: pointer;
                 }
             }
         }
@@ -150,9 +151,9 @@
             justify-content: end;
             padding-bottom: 15px;
 
-            .no-wrap {
+            .no-wrap {                
                 &__inner {
-                    padding-left: 10px;
+                    padding-left: 10px;                    
                 }
             }
         }
