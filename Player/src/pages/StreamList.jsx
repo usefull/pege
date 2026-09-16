@@ -1,5 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
+
+import { useStreams, useUploadStreams } from '../features/StreamsSlice';
+import { useCurrentStream, useSetCurrentStream } from "../features/PlayerSlice";
 
 import FadeIn from '../components/FadeIn';
 
@@ -8,8 +11,13 @@ import '../styles/stream-list.scss';
 const StreamList = () => {
 
     const navigate = useNavigate();
+    const streams = useStreams();
+    const currentStream = useCurrentStream();
+    const setCurrentStream = useSetCurrentStream();
 
     const [filter, setFilter] = useState('');
+
+    useEffect(() => { console.log('sss')}, []);
 
     return (<FadeIn>
         <div className='streams-container'>
@@ -29,96 +37,22 @@ const StreamList = () => {
                     </div>
                 </div>
             </div>
-            <div className='list'>
-                <div className='item select'>
-                    <div>o0o0.online</div>
-                    <div>Russia</div>
+            <div className='list'>{!streams.items ? <></> : streams.items.map((s, i) =>
+                <div key={i} className={`item${s.id === currentStream ? ' select' : ''}`} onClick={() => {
+                    setCurrentStream(s.id);
+                    navigate(`/`);
+                }}>
+                    <div>{s.title}</div>
+                    <div>{s.country}</div>
+                    {s.started && <svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="24" cy="24" r="5"/>
+                        <path d="M17.4,31.5a2.1,2.1,0,0,1-2.8,3,14.3,14.3,0,0,1,0-21,2.1,2.1,0,0,1,2.8,3,10,10,0,0,0,0,15Z"/>
+                        <path d="M38,24a14.2,14.2,0,0,1-4.6,10.5,2.1,2.1,0,0,1-2.8-3,10,10,0,0,0,0-15,2.1,2.1,0,1,1,2.8-3A14.2,14.2,0,0,1,38,24Z"/>
+                        <path d="M46,24a21.1,21.1,0,0,1-6.6,15.4,2,2,0,0,1-2.8-2.8,17.4,17.4,0,0,0,0-25.2,2,2,0,0,1,2.8-2.8A21.1,21.1,0,0,1,46,24Z"/>
+                        <path d="M11.4,36.6a2,2,0,0,1-2.8,2.8,21.3,21.3,0,0,1,0-30.8,2,2,0,0,1,2.8,2.8,17.4,17.4,0,0,0,0,25.2Z"/>
+                    </svg>}
                 </div>
-                <div className='item'>
-                    <div>94,3 RS2</div>
-                    <div>Germany</div>
-                </div>
-                <div className='item'>
-                    <div>BBC Radio</div>
-                    <div>United Kingdom</div>
-                </div>
-                <div className='item'>
-                    <div>o0o0.online</div>
-                    <div>Russia</div>
-                </div>
-                <div className='item'>
-                    <div>94,3 RS2</div>
-                    <div>Germany</div>
-                </div>
-                <div className='item'>
-                    <div>BBC Radio</div>
-                    <div>United Kingdom</div>
-                </div>
-                <div className='item'>
-                    <div>o0o0.online</div>
-                    <div>Russia</div>
-                </div>
-                <div className='item'>
-                    <div>94,3 RS2</div>
-                    <div>Germany</div>
-                </div>
-                <div className='item'>
-                    <div>BBC Radio</div>
-                    <div>United Kingdom</div>
-                </div>
-                <div className='item'>
-                    <div>o0o0.online</div>
-                    <div>Russia</div>
-                </div>
-                <div className='item'>
-                    <div>94,3 RS2</div>
-                    <div>Germany</div>
-                </div>
-                <div className='item'>
-                    <div>BBC Radio</div>
-                    <div>United Kingdom</div>
-                </div>
-                <div className='item'>
-                    <div>o0o0.online</div>
-                    <div>Russia</div>
-                </div>
-                <div className='item'>
-                    <div>94,3 RS2</div>
-                    <div>Germany</div>
-                </div>
-                <div className='item'>
-                    <div>BBC Radio</div>
-                    <div>United Kingdom</div>
-                </div>
-                <div className='item'>
-                    <div>o0o0.online</div>
-                    <div>Russia</div>
-                </div>
-                <div className='item'>
-                    <div>94,3 RS2</div>
-                    <div>Germany</div>
-                </div>
-                <div className='item'>
-                    <div>o0o0.online</div>
-                    <div>Russia</div>
-                </div>
-                <div className='item'>
-                    <div>94,3 RS2</div>
-                    <div>Germany</div>
-                </div>
-                <div className='item select'>
-                    <div>BBC Radio</div>
-                    <div>United Kingdom</div>
-                </div>
-                <div className='item'>
-                    <div>o0o0.online</div>
-                    <div>Russia</div>
-                </div>
-                <div className='item select'>
-                    <div>94,3 RS2</div>
-                    <div>Germany</div>
-                </div>
-            </div>
+            )}</div>
         </div>
     </FadeIn>);
 }

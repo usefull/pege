@@ -1,7 +1,8 @@
 import { lazy, useEffect, useState } from 'react'
 import { Routes, Route } from 'react-router-dom'
 
-import { SERVER_ORIGIN } from './const';
+import { useStreams, useUploadStreams } from './features/StreamsSlice';
+import { useSetCurrentStream, useCurrentStream } from './features/PlayerSlice';
 
 const Home = lazy(() => import('./pages/Home'))
 const StreamList = lazy(() => import('./pages/StreamList'))
@@ -11,23 +12,29 @@ const Splash = lazy(() => import('./components/Splash'))
 
 const App = () => {
 
+    const uploadStreams = useUploadStreams();
+    const setCurrentStream = useSetCurrentStream();
+    const streams = useStreams();
+    const currentStream = useCurrentStream();
+
     const [isStarting, setIsStarting] = useState(true);
     const [isReady, setIsReady] = useState(false);
 
     useEffect(() => {
-        (async () => {
-            try {
-                const response = await fetch(SERVER_ORIGIN + '/api/stream/list');
-                const result = await response.json();
-                console.log(result);
-            } catch (error) {
-                //setCurrentRadioPoint(null);
+        uploadStreams();
+    }, [uploadStreams]);
+
+    useEffect(() => {
+        if (streams.status === 'succeeded' && streams.items) {
+            if (!streams.items || streams.items.length === 0 || streams.error)
+                setCurrentStream(null);
+            else if (!currentStream || streams.items.findIndex(s => s.id === currentStream) < 0) {
+                setCurrentStream(streams.items[0].id);
             }
-            finally {
-                setIsStarting(false);
-            }
-        })();
-    }, []);
+
+            setTimeout(() => setIsStarting(false), 1);
+        }
+    }, [streams]);
 
     return (!isReady ? <Splash isStarting={isStarting} setIsReady={setIsReady} /> :
         <Routes>

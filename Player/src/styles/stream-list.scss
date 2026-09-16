@@ -27,12 +27,27 @@
         padding-bottom: 5px;
 
         .item {
+            display: flex;
+            flex-wrap: wrap;
             font-size: 20px;
             padding-top: 4px;
             padding-bottom: 15px;
             padding-left:8px;
             border-left: 8px solid transparent;
             border-bottom: 1px solid #{$color-text}33;
+            border-top: 1px solid transparent;
+            cursor: pointer;
+
+            &:hover {
+                background-color: $color-bkg-light;
+            }
+
+            svg {
+                width: 25px;
+                height: 25px;
+                margin-left: 10px;
+                animation: pulse-opacity 2s ease-in-out infinite;
+            }
 
             &.select {
                 border-left: 8px solid $color-text;
@@ -63,9 +78,11 @@
 
             div {
                 &:nth-child(1) {
+                    flex: 1 100%;
                     font-weight: 500;
                 }
                 &:nth-child(2) {
+                    width: fit-content;
                     opacity: 0.6;
                     font-size: 17px;
                 }
@@ -125,5 +142,17 @@
                 text-overflow: ellipsis;
             }
         }
+    }
+}
+
+@keyframes pulse-opacity {
+    0% {
+        opacity: 0.3;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0.3;
     }
 }
