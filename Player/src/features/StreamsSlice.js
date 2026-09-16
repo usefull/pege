@@ -24,14 +24,16 @@ export const useStreams = () => {
     const items = useSelector((s) => s.streams.items);
     const status = useSelector((s) => s.streams.status);
     const error = useSelector((s) => s.streams.error);
-    return { items, status, error };
+    const when = useSelector((s) => s.streams.when);
+    return { items, status, error, when };
 };
 
 const streamsSlice = createSlice({
     name: 'streams',
     initialState: {
         items: [],
-        status: 'idle',   // 'idle' | 'loading' | 'succeeded' | 'failed'
+        status: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed'
+        when: null,     // время, когда в последний раз был успешно загружен список
         error: null,
     },
     reducers: {},
@@ -42,6 +44,7 @@ const streamsSlice = createSlice({
         .addCase(uploadStreamsThunk.fulfilled, (state, action) => {
             state.status = 'succeeded';
             state.items = action.payload;
+            state.when = Date.now()
         })
         .addCase(uploadStreamsThunk.rejected, (state, action) => {
             state.status = 'failed';

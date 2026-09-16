@@ -1,4 +1,8 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
+
+import { useStreams, useUploadStreams } from '../features/StreamsSlice';
+import { useCurrentStream, useSetCurrentStream } from "../features/PlayerSlice";
 
 import MainButton from '../components/MainButton';
 import FadeIn from '../components/FadeIn';
@@ -8,23 +12,45 @@ import MarqueeText from '../components/MarqueeText';
 import '../styles/home.scss'
 import NoWrap from '../components/NoWrap';
 
-const SERVER_ORIGIN = import.meta.env.VITE_SERVER_ORIGIN === 'DYNAMIC' ? window.location.origin : import.meta.env.VITE_SERVER_ORIGIN;
-
 const Home = () => {
 
     const navigate = useNavigate();
+    const streams = useStreams();
+    const currentStream = useCurrentStream();
+    const setCurrentStream = useSetCurrentStream();
+
+    const [currentStreamInfo, setCurrentStreamInfo] = useState(null);
+
+    useEffect(() => {setTimeout(() => setCurrentStreamInfo(streams.items.find(s => s.id === currentStream)), 1)}, [currentStream]);
+
+    const setNextStream = (forward) => {
+        if (!streams.items || streams.items.length === 0) return;
+        let index = streams.items.findIndex(s => s.id === currentStream);
+        if (index < 0)
+            index = 0;
+        else if (forward) {
+            index++;
+            if (index >= streams.items.length)
+                index = 0;
+        } else {
+            index--;
+            if (index < 0)
+                index = streams.items.length - 1;
+        }
+        setCurrentStream(streams.items[index].id);
+    }
     
     return (<FadeIn>
         <div className="home-container">
             <div className="control-panel">
-                <ShiftButton dir='back' title="Prev stream"></ShiftButton>
+                <ShiftButton dir='back' title="Prev stream" onClick={() => setNextStream(false)}></ShiftButton>
                 <MainButton title="Play / Stop" onClick={() => console.log('1111')}></MainButton>
-                <ShiftButton title="Next stream"></ShiftButton>
+                <ShiftButton title="Next stream" onClick={() => setNextStream(true)}></ShiftButton>
             </div>
             <div className="header-panel">
-                <MarqueeText>WDR 2 Rheinland aktuell, Westdeutchscher Rundfunk Koeln</MarqueeText>
+                <MarqueeText>{currentStreamInfo ? currentStreamInfo.title : ''}</MarqueeText>
                 <NoWrap>
-                    <span>United Kingdom 12345 uytrgf b jfyrggtts 87534323</span>
+                    <span>{currentStreamInfo ? currentStreamInfo.country : ''}</span>
                     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" onClick={() => navigate(`/info`)}>
                         <defs>
                             <radialGradient id="info-button-grad" cx="50%" cy="50%" r="60%" >

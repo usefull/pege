@@ -14,10 +14,14 @@ const StreamList = () => {
     const streams = useStreams();
     const currentStream = useCurrentStream();
     const setCurrentStream = useSetCurrentStream();
+    const uploadStreams = useUploadStreams();
 
     const [filter, setFilter] = useState('');
 
-    useEffect(() => { console.log('sss')}, []);
+    useEffect(() => {
+        if (Date.now() - streams.when > 200000)
+            uploadStreams();
+    }, []);
 
     return (<FadeIn>
         <div className='streams-container'>
