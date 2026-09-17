@@ -13,7 +13,7 @@ import MarqueeText from '../components/MarqueeText';
 import '../styles/home.scss'
 import NoWrap from '../components/NoWrap';
 
-const Home = () => {
+const Home = ({ togglePlay }) => {
 
     const navigate = useNavigate();
     const streams = useStreams();
@@ -45,7 +45,7 @@ const Home = () => {
         <div className="home-container">
             <div className="control-panel">
                 <ShiftButton dir='back' title="Prev stream" onClick={() => setNextStream(false)}></ShiftButton>
-                <MainButton title="Play / Stop" onClick={() => console.log('1111')}></MainButton>
+                <MainButton title="Play / Stop" onClick={() => togglePlay?.current?.()}></MainButton>
                 <ShiftButton title="Next stream" onClick={() => setNextStream(true)}></ShiftButton>
             </div>
             <div className="header-panel">

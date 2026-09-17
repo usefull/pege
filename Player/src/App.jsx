@@ -65,8 +65,8 @@ const App = () => {
             }}
         />
         <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/streams" element={<StreamList />} />
+            <Route path="/" element={<Home togglePlay={togglePlayFn} />} />
+            <Route path="/streams" element={<StreamList togglePlay={togglePlayFn} />} />
             <Route path="/eq" element={<Equalizer />} />
             <Route path="/info" element={<Info />} />
         </Routes>

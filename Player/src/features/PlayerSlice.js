@@ -56,3 +56,5 @@ export function useSetIsBuffering() {
 };
 
 export const useCurrentStream = () => useSelector((s) => s.player.currentStream);
+export const useIsPlaying = () => useSelector((s) => s.player.isPlaying);
+export const useIsBuffering = () => useSelector((s) => s.player.isBuffering);

@@ -122,6 +122,7 @@ const RadioPlayer = ({
 
   // === Fade-out ===
   const stopPlaybackWithFade = () => {
+    setIsPlaying(false);
     return new Promise((resolve) => {
       if (!isPlayingRef.current || isStoppingRef.current) {
         resolve();
