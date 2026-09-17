@@ -13,12 +13,20 @@ const playerSlice = createSlice({
     reducers: {
         setCurrentStream: (state, action) => {
             state.currentStream = action.payload;
+        },
+        setIsPlaying: (state, action) => {
+            state.isPlaying = action.payload;
+        },
+        setIsBuffering: (state, action) => {
+            state.isBuffering = action.payload;
         }
     }
 });
 
 export const {
-  setCurrentStream
+    setCurrentStream,
+    setIsPlaying,
+    setIsBuffering
 } = playerSlice.actions;
 
 export default playerSlice.reducer;
@@ -29,6 +37,22 @@ export function useSetCurrentStream() {
         (stream) => dispatch(setCurrentStream(stream)),
         [dispatch]
     );
-}
+};
+
+export function useSetIsPlaying() {
+    const dispatch = useDispatch();
+    return useCallback(
+        (isPlaying) => dispatch(setIsPlaying(isPlaying)),
+        [dispatch]
+    );
+};
+
+export function useSetIsBuffering() {
+    const dispatch = useDispatch();
+    return useCallback(
+        (isBuffering) => dispatch(setIsBuffering(isBuffering)),
+        [dispatch]
+    );
+};
 
 export const useCurrentStream = () => useSelector((s) => s.player.currentStream);
