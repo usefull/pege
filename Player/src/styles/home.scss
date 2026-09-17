@@ -63,6 +63,13 @@
                 font-size: 16px;
                 font-weight: 300;
             }
+
+            .flac-label {
+                width: 0.75em;
+                height: 0.75em;
+                opacity: 0.85;
+                transform: translate(5px, 0px);
+            }
         }
     }
 }

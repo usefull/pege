@@ -139,6 +139,12 @@
                         font-weight: 450;
                     }
                 }
+                svg {
+                    width: 0.8em;
+                    height: 0.8em;
+                    transform: translate(5px, 2px);
+                    opacity: 0.85;
+                }
             }
         }
     }
