@@ -1,7 +1,7 @@
 import { lazy, useEffect, useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 
-import { SERVER_ORIGIN, CENTRAL_FREQS} from './const';
+import { SERVER_ORIGIN} from './const';
 
 import { useStreams, useUploadStreams } from './features/StreamsSlice';
 import { useSetCurrentStream, useCurrentStream } from './features/PlayerSlice';
@@ -41,20 +41,7 @@ const App = () => {
     }, [streams]);
 
     return (!isReady ? <Splash isStarting={isStarting} setIsReady={setIsReady} /> : <>
-        <RadioPlayer
-            streamUrl={currentStream ? `${SERVER_ORIGIN}/stream/${currentStream}` : null}
-            equalizerOn={false}
-            centralFreqs={CENTRAL_FREQS}
-            eqGrains={[0,0,0,0,0,0,0,0,0]}
-            onStreamInfoUpdate={info => {
-                // if (info.Name) setStreamTitle(info.Name);
-                // setStreamSubtitle(info.Country ? `(${info.Country})` : null);
-                // setTrack(info.Track);
-                // setArtist(info.Artist);
-                // setFromFlac(info.FromFlac);
-                // setStreamNext(info.Next)
-            }}
-        />
+        <RadioPlayer streamUrl={currentStream ? `${SERVER_ORIGIN}/stream/${currentStream}` : null} />
         <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/streams" element={<StreamList />} />

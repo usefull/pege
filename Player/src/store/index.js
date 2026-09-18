@@ -4,21 +4,33 @@ import storage from './storage';
 
 import streamsReducer from '../features/StreamsSlice';
 import playerReducer from '../features/PlayerSlice';
+import equalizerReducer from '../features/EqualizerSlice';
+
+const equalizerPersistConfig = {
+    key: 'equalizer',
+    storage
+};
+
+const equalizerPersistedReducer = persistReducer(
+    equalizerPersistConfig,
+    equalizerReducer
+);
 
 const playerPersistConfig = {
-  key: 'player',
-  storage,
-  whitelist: ['currentStream'],
+    key: 'player',
+    storage,
+    whitelist: ['currentStream'],
 };
 
 const playerPersistedReducer = persistReducer(
-  playerPersistConfig,
-  playerReducer
+    playerPersistConfig,
+    playerReducer
 );
 
 const rootReducer = combineReducers({
     streams: streamsReducer,
     player: playerPersistedReducer,
+    equalizer: equalizerPersistedReducer
 });
 
 const rootPersistConfig = {

@@ -3,7 +3,10 @@ import { MPEGDecoder } from 'mpg123-decoder';
 import { decoder as createAACDecoder } from '@audio/decode-aac';
 import AudioChain from './AudioChain';
 
-import { useSetIsPlaying, useSetIsBuffering, useTogglePlayRequestId, useSetMetadata, useMetadata } from '../features/PlayerSlice';
+import { useSetIsPlaying, useSetIsBuffering, useTogglePlayRequestId, useSetMetadata } from '../features/PlayerSlice';
+import { useEqGrains, useEqOn } from '../features/EqualizerSlice';
+
+import { CENTRAL_FREQS } from '../const';
 
 const MIN_BUFFER_DURATION = 2.0;
 const LOOK_AHEAD_TIME = 0.6;
@@ -12,19 +15,14 @@ const INITIAL_RECONNECT_DELAY = 1000;
 const MAX_RECONNECT_DELAY = 16000;
 const FADE_DURATION = 0.4;
 
-const RadioPlayer = ({ 
-    streamUrl,
-    equalizerOn, 
-    centralFreqs, 
-    eqGrains,
-    onStreamInfoUpdate
-}) => {
+const RadioPlayer = ({ streamUrl }) => {
     const togglePlayRequestId = useTogglePlayRequestId();
     const initialRequestIdRef = useRef(togglePlayRequestId);
     const setIsPlaying = useSetIsPlaying();
     const setIsBuffering = useSetIsBuffering();
     const setMetadata = useSetMetadata();
-    //const metadata = useMetadata();
+    const eqGrains = useEqGrains();
+    const eqOn = useEqOn();
 
     const audioContextRef = useRef(null);
     const decoderRef = useRef(null);
@@ -36,7 +34,7 @@ const RadioPlayer = ({
     const nextStartTimeRef = useRef(0);
     const streamUrlRef = useRef(streamUrl);
 
-    const equalizerOnRef = useRef(equalizerOn);
+    const equalizerOnRef = useRef(eqOn);
     const eqGrainsRef = useRef(eqGrains);
 
     const audioQueueRef = useRef([]);
@@ -51,20 +49,13 @@ const RadioPlayer = ({
     const isEqEnabledRef = useRef(true);
 
     const metadataRef = useRef(null);
-    const streamInfoRef = useRef({
-        // name: null,
-        // country: null,
-        // track: null,
-        // artist: null,
-        // fromFlac: false,
-        // next: null
-    });
+    const streamInfoRef = useRef({});
 
     useEffect(() => {
-        equalizerOnRef.current = equalizerOn;
+        equalizerOnRef.current = eqOn;
         if (audioChainRef.current)
-            audioChainRef.current.setEqualizerOn(equalizerOn);
-    }, [equalizerOn]);
+            audioChainRef.current.setEqualizerOn(eqOn);
+    }, [eqOn]);
 
     useEffect(() => {
         eqGrainsRef.current = eqGrains;
@@ -241,15 +232,6 @@ const RadioPlayer = ({
                 country: parts.length > 1 ? parts[1].trim() : null
             };
             setMetadata(streamInfoRef.current);
-            // streamInfoRef.current = { ... streamInfoRef.current };
-            // if (parts.length > 0) {
-            //     streamInfoRef.current.Name = parts[0].trim();
-            // }
-            // if (parts.length > 1) {
-            //     streamInfoRef.current.Country = parts[1].trim();
-            // }
-            // if (onStreamInfoUpdate)
-            //     onStreamInfoUpdate(streamInfoRef.current);
 
             const reader = response.body.getReader();
 
@@ -624,7 +606,7 @@ const RadioPlayer = ({
             context, 
             equalizerOnRef.current, 
             eqGrainsRef.current, 
-            centralFreqs
+            CENTRAL_FREQS
         );
         audioChainRef.current.masterGain.connect(context.destination);
 
