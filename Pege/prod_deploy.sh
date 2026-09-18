@@ -52,6 +52,7 @@ tar --exclude='bin' \
     --exclude='audio' \
     --exclude='storage' \
     --exclude='Client' \
+    --exclude='Player' \
     --exclude='LoadTests' \
     --exclude='SimpleTest' \
     -czf /tmp/project.tar.gz .
