@@ -49,9 +49,9 @@ const App = () => {
     return (!isReady ? <Splash isStarting={isStarting} setIsReady={setIsReady} /> : <>
         <RadioPlayer
             streamUrl={currentStream ? `${SERVER_ORIGIN}/stream/${currentStream}` : null}
-            setIsPlaying={setIsPlaying}
+            //setIsPlaying={setIsPlaying}
             onToggleReady={handleToggleReady}
-            onBuffering={setIsBuffering}
+            //onBuffering={setIsBuffering}
             equalizerOn={false}
             centralFreqs={CENTRAL_FREQS}
             eqGrains={[0,0,0,0,0,0,0,0,0]}

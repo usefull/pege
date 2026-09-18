@@ -412,23 +412,30 @@ namespace Pege.Services
             // В продакшене запись в stdin и чтение из stdout должны происходить асинхронно или параллельно,
             // чтобы избежать взаимной блокировки (deadlock) при заполнении буферов ОС.
             using var outputStream = new MemoryStream();
+            using var errorStream = new MemoryStream();
 
-            var writeTask = Task.Run(() =>
+            var writeTask = Task.Run(async () =>
             {
                 using var stdin = process.StandardInput.BaseStream;
-                stdin.Write(m4aData.Span);
+                await stdin.WriteAsync(m4aData.Span.ToArray(), cancellationToken);
                 stdin.Flush();
                 // Закрываем поток ввода, чтобы ffmpeg понял, что файл закончился и завершил обработку
-            });
+            }, cancellationToken);
 
             var readTask = Task.Run(() =>
             {
                 using var stdout = process.StandardOutput.BaseStream;
                 stdout.CopyTo(outputStream);
-            });
+            }, cancellationToken);
+
+            var errorTask = Task.Run(() =>
+            {
+                using var stdout = process.StandardError.BaseStream;
+                stdout.CopyTo(errorStream);
+            }, cancellationToken);
 
             // Ждем завершения потоков ввода-вывода и самого процесса
-            await Task.WhenAll(writeTask, readTask);
+            await Task.WhenAll(writeTask, readTask, errorTask);
 
             try
             {

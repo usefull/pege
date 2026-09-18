@@ -70,6 +70,18 @@
                 opacity: 0.85;
                 transform: translate(5px, 0px);
             }
+
+            .buffering {
+                &::after {
+                    content: 'Buffering';
+                    font-weight: 100;
+                    animation:
+                        buffering 1s ease infinite,
+                        buffering-appearance 1.5s ease-in forwards;
+                    opacity: 1;
+                    transition: opacity 5s;
+                }
+            }
         }
     }
 }
@@ -252,5 +264,26 @@
 {
     .home-container {
         display: none;
+    }
+}
+
+@keyframes buffering-appearance {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes buffering {
+    0% {
+        text-shadow: 0 0 2px $color-text;
+    }
+    50% {
+        text-shadow: 0 0 11px $color-text;
+    }
+    100% {
+        text-shadow: 0 0 2px $color-text;
     }
 }
