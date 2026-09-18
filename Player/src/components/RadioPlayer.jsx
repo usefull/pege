@@ -3,7 +3,7 @@ import { MPEGDecoder } from 'mpg123-decoder';
 import { decoder as createAACDecoder } from '@audio/decode-aac';
 import AudioChain from './AudioChain';
 
-import { useSetIsPlaying, useSetIsBuffering } from '../features/PlayerSlice';
+import { useSetIsPlaying, useSetIsBuffering, useTogglePlayRequestId } from '../features/PlayerSlice';
 
 const MIN_BUFFER_DURATION = 2.0;
 const LOOK_AHEAD_TIME = 0.6;
@@ -13,15 +13,14 @@ const MAX_RECONNECT_DELAY = 16000;
 const FADE_DURATION = 0.4;
 
 const RadioPlayer = ({ 
-    streamUrl, 
-    //setIsPlaying, 
-    onToggleReady, 
-    //onBuffering, 
+    streamUrl,
     equalizerOn, 
     centralFreqs, 
     eqGrains,
     onStreamInfoUpdate
 }) => {
+    const togglePlayRequestId = useTogglePlayRequestId();
+    const initialRequestIdRef = useRef(togglePlayRequestId);
     const setIsPlaying = useSetIsPlaying();
     const setIsBuffering = useSetIsBuffering();
 
@@ -86,15 +85,7 @@ const RadioPlayer = ({
         streamUrlRef.current = streamUrl;
     }, [streamUrl]);
 
-    const togglePlay = async () => {
-        if (isPlayingRef.current) {
-            await stopPlaybackWithFade();            
-        } else {
-            await startPlayback();
-        }
-    };
-
-  // === Wake Lock ===
+    // === Wake Lock ===
     const requestWakeLock = async () => {
         if (!('wakeLock' in navigator)) return;
         try {
@@ -651,12 +642,18 @@ const RadioPlayer = ({
     };
 
     useEffect(() => {
-        if (onToggleReady) onToggleReady(togglePlay);
-        
         return () => {
             forceStopAll();
         };
     }, []);
+
+    useEffect(() => {
+        if (togglePlayRequestId === initialRequestIdRef.current) return;
+        if (isPlayingRef.current)
+            stopPlaybackWithFade();            
+        else
+            startPlayback();
+    }, [togglePlayRequestId]);
 
     // Плавное переключение радиостанций
     useEffect(() => {

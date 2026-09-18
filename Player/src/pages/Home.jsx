@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 
 import { useStreams } from '../features/StreamsSlice';
-import { useCurrentStream, useSetCurrentStream, useIsBuffering } from "../features/PlayerSlice";
+import { useCurrentStream, useSetCurrentStream, useIsBuffering, useTogglePlay } from "../features/PlayerSlice";
 
 import { ListSvg, EqualizerSvg, FlacSvg} from '../components/Svg';
 import MainButton from '../components/MainButton';
@@ -13,13 +13,14 @@ import MarqueeText from '../components/MarqueeText';
 import '../styles/home.scss'
 import NoWrap from '../components/NoWrap';
 
-const Home = ({ togglePlay }) => {
+const Home = () => {
 
     const navigate = useNavigate();
     const streams = useStreams();
     const currentStream = useCurrentStream();
     const setCurrentStream = useSetCurrentStream();
     const isBuffering = useIsBuffering();
+    const togglePlay = useTogglePlay();
 
     const [currentStreamInfo, setCurrentStreamInfo] = useState(null);
 
@@ -46,7 +47,7 @@ const Home = ({ togglePlay }) => {
         <div className="home-container">
             <div className="control-panel">
                 <ShiftButton dir='back' title="Prev stream" onClick={() => setNextStream(false)}></ShiftButton>
-                <MainButton title="Play / Stop" onClick={() => togglePlay?.current?.()}></MainButton>
+                <MainButton title="Play / Stop" onClick={() => togglePlay()}></MainButton>
                 <ShiftButton title="Next stream" onClick={() => setNextStream(true)}></ShiftButton>
             </div>
             <div className="header-panel">

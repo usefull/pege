@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 
 import { useStreams, useUploadStreams } from '../features/StreamsSlice';
-import { useCurrentStream, useSetCurrentStream, useIsPlaying } from "../features/PlayerSlice";
+import { useCurrentStream, useSetCurrentStream, useIsPlaying, useTogglePlay } from "../features/PlayerSlice";
 
 import { OnAirSvg, ArrowToLeftSvg, CrossSvg } from '../components/Svg';
 
@@ -10,7 +10,7 @@ import FadeIn from '../components/FadeIn';
 
 import '../styles/stream-list.scss';
 
-const StreamList = ({ togglePlay }) => {
+const StreamList = () => {
 
     const navigate = useNavigate();
     const streams = useStreams();
@@ -18,6 +18,7 @@ const StreamList = ({ togglePlay }) => {
     const setCurrentStream = useSetCurrentStream();
     const uploadStreams = useUploadStreams();
     const isPlaying = useIsPlaying();
+    const togglePlay = useTogglePlay();
 
     const [filter, setFilter] = useState('');
 
@@ -43,7 +44,7 @@ const StreamList = ({ togglePlay }) => {
             <div className='list'>{!streams.items ? <></> : streams.items.filter(s => filter === '' ? true : s.title.toLowerCase().includes(filter.toLowerCase())).map((s, i) =>
                 <div key={i} className={`item${s.id === currentStream ? ' select' : ''}`} onClick={() => {
                     setCurrentStream(s.id);
-                    if (!isPlaying) togglePlay?.current?.();
+                    if (!isPlaying) togglePlay();
                     navigate(`/`);
                 }}>
                     <div>{s.title}</div>

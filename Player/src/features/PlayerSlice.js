@@ -1,3 +1,4 @@
+
 import { useDispatch, useSelector } from 'react-redux';
 import { useCallback } from 'react';
 import { createSlice } from '@reduxjs/toolkit';
@@ -8,6 +9,7 @@ const playerSlice = createSlice({
         currentStream: null,
         isPlaying: false,
         isBuffering: false,
+        togglePlayRequestId: 0,
         error: null,
     },
     reducers: {
@@ -19,6 +21,9 @@ const playerSlice = createSlice({
         },
         setIsBuffering: (state, action) => {
             state.isBuffering = action.payload;
+        },
+        toggleRequest: (state) => {
+            state.togglePlayRequestId += 1;
         }
     }
 });
@@ -26,7 +31,8 @@ const playerSlice = createSlice({
 export const {
     setCurrentStream,
     setIsPlaying,
-    setIsBuffering
+    setIsBuffering,
+    toggleRequest
 } = playerSlice.actions;
 
 export default playerSlice.reducer;
@@ -55,6 +61,15 @@ export function useSetIsBuffering() {
     );
 };
 
+export function useTogglePlay() {
+    const dispatch = useDispatch();
+    return useCallback(
+        () => dispatch(toggleRequest()),
+        [dispatch]
+    );
+};
+
 export const useCurrentStream = () => useSelector((s) => s.player.currentStream);
 export const useIsPlaying = () => useSelector((s) => s.player.isPlaying);
 export const useIsBuffering = () => useSelector((s) => s.player.isBuffering);
+export const useTogglePlayRequestId = () => useSelector((s) => s.player.togglePlayRequestId);
