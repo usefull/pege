@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 
 import { useStreams } from '../features/StreamsSlice';
-import { useCurrentStream, useSetCurrentStream, useIsBuffering, useTogglePlay } from "../features/PlayerSlice";
+import { useCurrentStream, useSetCurrentStream, useIsBuffering, useTogglePlay, useMetadata } from "../features/PlayerSlice";
 
 import { ListSvg, EqualizerSvg, FlacSvg} from '../components/Svg';
 import MainButton from '../components/MainButton';
@@ -21,6 +21,7 @@ const Home = () => {
     const setCurrentStream = useSetCurrentStream();
     const isBuffering = useIsBuffering();
     const togglePlay = useTogglePlay();
+    const metadata = useMetadata();
 
     const [currentStreamInfo, setCurrentStreamInfo] = useState(null);
 
@@ -66,9 +67,9 @@ const Home = () => {
                 </NoWrap>
             </div>
             <div className="footer-panel">
-                <MarqueeText>{isBuffering ? '' : <>Any Body Seen My Baby? (Remastered 2009)<FlacSvg /></>}</MarqueeText>
-                <MarqueeText>{isBuffering ? <span className='buffering'></span> : "Rolling Stone"}</MarqueeText>
-                <MarqueeText>{isBuffering ? '' : <><u>Next up</u>:&nbsp;"Livin' On The Edge" by Aerosmith</>}</MarqueeText>
+                <MarqueeText>{isBuffering ? '' : <>{metadata ? metadata.track : ''}{metadata && metadata.fromFlac && <FlacSvg />}</>}</MarqueeText>
+                <MarqueeText>{isBuffering ? <span className='buffering'></span> : <>{metadata ? metadata.artist : ''}</>}</MarqueeText>
+                <MarqueeText>{isBuffering ? '' : <>{metadata && metadata.next && <><u>Next up</u>:&nbsp;{metadata.next}</>}</>}</MarqueeText>
             </div>
         </div>
         <div className='svg-button list-button' title="Stream list" onClick={() => navigate(`/streams`)}>

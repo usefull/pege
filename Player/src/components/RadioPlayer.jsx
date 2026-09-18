@@ -3,7 +3,7 @@ import { MPEGDecoder } from 'mpg123-decoder';
 import { decoder as createAACDecoder } from '@audio/decode-aac';
 import AudioChain from './AudioChain';
 
-import { useSetIsPlaying, useSetIsBuffering, useTogglePlayRequestId } from '../features/PlayerSlice';
+import { useSetIsPlaying, useSetIsBuffering, useTogglePlayRequestId, useSetMetadata, useMetadata } from '../features/PlayerSlice';
 
 const MIN_BUFFER_DURATION = 2.0;
 const LOOK_AHEAD_TIME = 0.6;
@@ -23,6 +23,8 @@ const RadioPlayer = ({
     const initialRequestIdRef = useRef(togglePlayRequestId);
     const setIsPlaying = useSetIsPlaying();
     const setIsBuffering = useSetIsBuffering();
+    const setMetadata = useSetMetadata();
+    //const metadata = useMetadata();
 
     const audioContextRef = useRef(null);
     const decoderRef = useRef(null);
@@ -50,12 +52,12 @@ const RadioPlayer = ({
 
     const metadataRef = useRef(null);
     const streamInfoRef = useRef({
-        Name: null,
-        Country: null,
-        Track: null,
-        Artist: null,
-        FromFlac: false,
-        Next: null
+        // name: null,
+        // country: null,
+        // track: null,
+        // artist: null,
+        // fromFlac: false,
+        // next: null
     });
 
     useEffect(() => {
@@ -71,17 +73,7 @@ const RadioPlayer = ({
     }, [eqGrains]);
 
     useEffect(() => {
-        if (streamUrlRef.current !== streamUrl) {
-            streamInfoRef.current = { ... streamInfoRef.current,
-                Country: null,
-                Artist: null,
-                Track: null,
-                FromFlac: false,
-                Next: null
-            };
-            if (onStreamInfoUpdate)
-                onStreamInfoUpdate(streamInfoRef.current);
-        }
+        if (streamUrlRef.current !== streamUrl) setMetadata({});
         streamUrlRef.current = streamUrl;
     }, [streamUrl]);
 
@@ -118,6 +110,8 @@ const RadioPlayer = ({
     // === Fade-out ===
     const stopPlaybackWithFade = () => {
         setIsPlaying(false);
+        streamInfoRef.current = {};
+        setMetadata({});
         return new Promise((resolve) => {
             if (!isPlayingRef.current || isStoppingRef.current) {
                 resolve();
@@ -205,7 +199,6 @@ const RadioPlayer = ({
         nextStartTimeRef.current = 0;
         audioQueueRef.current = [];
         
-        //if (onBuffering) onBuffering(false);
         setIsBuffering(false);
     };
 
@@ -243,15 +236,20 @@ const RadioPlayer = ({
 
             const icyNameHeader = response.headers.get('icy-name') || '';
             const parts = decodeURIComponent(icyNameHeader).split('|||');
-            streamInfoRef.current = { ... streamInfoRef.current };
-            if (parts.length > 0) {
-                streamInfoRef.current.Name = parts[0].trim();
-            }
-            if (parts.length > 1) {
-                streamInfoRef.current.Country = parts[1].trim();
-            }
-            if (onStreamInfoUpdate)
-                onStreamInfoUpdate(streamInfoRef.current);
+            streamInfoRef.current = { ... streamInfoRef.current,
+                name: parts.length > 0 ? parts[0].trim() : null,
+                country: parts.length > 1 ? parts[1].trim() : null
+            };
+            setMetadata(streamInfoRef.current);
+            // streamInfoRef.current = { ... streamInfoRef.current };
+            // if (parts.length > 0) {
+            //     streamInfoRef.current.Name = parts[0].trim();
+            // }
+            // if (parts.length > 1) {
+            //     streamInfoRef.current.Country = parts[1].trim();
+            // }
+            // if (onStreamInfoUpdate)
+            //     onStreamInfoUpdate(streamInfoRef.current);
 
             const reader = response.body.getReader();
 
@@ -274,7 +272,7 @@ const RadioPlayer = ({
                         decoderTypeRef.current = 'mp3'; // По умолчанию
                     }
                 }
-                
+
                 if (metaInterval > 0) {
                     let bufferPos = 0;
                     while (bufferPos < bytesRead) {
@@ -294,15 +292,15 @@ const RadioPlayer = ({
                                 const streamTitle = metadataParts.find(s => s.startsWith("StreamTitle='"));
                                 streamInfoRef.current = { ... streamInfoRef.current };
                                 if (!streamTitle) {
-                                    streamInfoRef.current.Track = null;
-                                    streamInfoRef.current.Artist = null;
+                                    streamInfoRef.current.track = null;
+                                    streamInfoRef.current.artist = null;
                                 } else {
                                     const start = streamTitle.indexOf("'") + 1;
                                     const end = streamTitle.lastIndexOf("'");
 
                                     if (start < 1 || end < 0) {
-                                        streamInfoRef.current.Track = '';
-                                        streamInfoRef.current.Artist = '';
+                                        streamInfoRef.current.track = null;
+                                        streamInfoRef.current.artist = null;
                                     } else {
                                         const parts = streamTitle
                                             .substring(start, end)
@@ -310,11 +308,11 @@ const RadioPlayer = ({
                                             .map(s => s.trim());
                                         
                                         if (parts.length > 0) {
-                                            streamInfoRef.current.Artist = parts[0];
+                                            streamInfoRef.current.artist = parts[0];
                                         }
                                         
                                         if (parts.length > 1) {
-                                            streamInfoRef.current.Track = parts[1];
+                                            streamInfoRef.current.track = parts[1];
                                         }
                                     }
                                 }
@@ -322,13 +320,13 @@ const RadioPlayer = ({
                                 const streamNext = metadataParts.find(s => s.startsWith("NextTrack='"));
                                 streamInfoRef.current = { ... streamInfoRef.current };
                                 if (!streamNext) {
-                                    streamInfoRef.current.Next = null;
+                                    streamInfoRef.current.next = null;
                                 } else {
                                     const start = streamNext.indexOf("'") + 1;
                                     const end = streamNext.lastIndexOf("'");
 
                                     if (start < 1 || end < 0) {
-                                        streamInfoRef.current.Next = '';
+                                        streamInfoRef.current.next = null;
                                     } else {
                                         const parts = streamNext
                                             .substring(start, end)
@@ -346,31 +344,32 @@ const RadioPlayer = ({
                                         }
 
                                         if (t && t.length > 0) {
-                                            streamInfoRef.current.Next = `"${t}"${(a && a.length > 0) ? ` by ${a}` : ''}`;
+                                            streamInfoRef.current.next = `"${t}"${(a && a.length > 0) ? ` by ${a}` : ''}`;
                                         } else {
-                                            streamInfoRef.current.Next = null;
+                                            streamInfoRef.current.next = null;
                                         }
                                     }
                                 }
                                 ///////////////////
                                 const fromFlac = metadataParts.find(s => s.startsWith("FromFlac='"));
                                 if (!fromFlac) {
-                                    streamInfoRef.current.FromFlac = false;
+                                    streamInfoRef.current.fromFlac = false;
                                 } else {
                                     const start = fromFlac.indexOf("'") + 1;
                                     const end = fromFlac.lastIndexOf("'");
 
                                     if (start < 1 || end < 0) {
-                                        streamInfoRef.current.FromFlac = false;
+                                        streamInfoRef.current.fromFlac = false;
                                     } else if (fromFlac.substring(start, end) === "1") {
-                                        streamInfoRef.current.FromFlac = true;
+                                        streamInfoRef.current.fromFlac = true;
                                     } else {
-                                        streamInfoRef.current.FromFlac = false;
+                                        streamInfoRef.current.fromFlac = false;
                                     }
                                 }
-                                if (onStreamInfoUpdate) {
-                                    onStreamInfoUpdate(streamInfoRef.current);
-                                }
+                                setMetadata(streamInfoRef.current);
+                                // if (onStreamInfoUpdate) {
+                                //     onStreamInfoUpdate(streamInfoRef.current);
+                                // }
                                 
                                 console.log('Метаданные: ' + strMetadata + ' ||| длина: ' + metadataLength);
                                 metadataRef.current = null;
@@ -521,7 +520,6 @@ const RadioPlayer = ({
         if (isBufferingRef.current) {
             if (totalQueueDuration >= MIN_BUFFER_DURATION) {
                 isBufferingRef.current = false;
-                //if (onBuffering) onBuffering(false);
                 setIsBuffering(false);
                 nextStartTimeRef.current = context.currentTime + 0.05;
 
@@ -539,7 +537,6 @@ const RadioPlayer = ({
 
         if (audioQueueRef.current.length === 0 && nextStartTimeRef.current < context.currentTime) {
             isBufferingRef.current = true;
-            //if (onBuffering) onBuffering(true);
             setIsBuffering(true);
             
             if (audioChainRef.current) {
@@ -580,7 +577,6 @@ const RadioPlayer = ({
         const currentUrl = streamUrlRef.current;
         if (!currentUrl) return;
 
-        //if (onBuffering) onBuffering(true);
         setIsBuffering(true);
         isBufferingRef.current = true;
 

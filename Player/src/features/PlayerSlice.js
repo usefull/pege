@@ -10,6 +10,7 @@ const playerSlice = createSlice({
         isPlaying: false,
         isBuffering: false,
         togglePlayRequestId: 0,
+        metadata: {},
         error: null,
     },
     reducers: {
@@ -24,6 +25,9 @@ const playerSlice = createSlice({
         },
         toggleRequest: (state) => {
             state.togglePlayRequestId += 1;
+        },
+        setMetadata: (state, action) => {
+            state.metadata = action.payload;
         }
     }
 });
@@ -32,7 +36,8 @@ export const {
     setCurrentStream,
     setIsPlaying,
     setIsBuffering,
-    toggleRequest
+    toggleRequest,
+    setMetadata
 } = playerSlice.actions;
 
 export default playerSlice.reducer;
@@ -69,7 +74,16 @@ export function useTogglePlay() {
     );
 };
 
+export function useSetMetadata() {
+    const dispatch = useDispatch();
+    return useCallback(
+        (metadata) => dispatch(setMetadata(metadata)),
+        [dispatch]
+    );
+};
+
 export const useCurrentStream = () => useSelector((s) => s.player.currentStream);
 export const useIsPlaying = () => useSelector((s) => s.player.isPlaying);
 export const useIsBuffering = () => useSelector((s) => s.player.isBuffering);
 export const useTogglePlayRequestId = () => useSelector((s) => s.player.togglePlayRequestId);
+export const useMetadata = () => useSelector((s) => s.player.metadata);
