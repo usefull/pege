@@ -80,7 +80,7 @@ export const TgSvg = ({ style }) => { return (
 );};
 
 export const PlaySvg = ({ style }) => { return (
-    <svg fill="#5d4a1f" viewBox="0 0 256 256" id="Flat" xmlns="http://www.w3.org/2000/svg" style={style}>
+    <svg viewBox="0 0 256 256" id="Flat" xmlns="http://www.w3.org/2000/svg" fill="currentColor" style={style}>
         <path d="M128,24A104,104,0,1,0,232,128,104.12041,104.12041,0,0,0,128,24Zm36.4375,110.65625-48,32A7.99612,7.99612,0,0,1,104,160V96a7.99612,7.99612,0,0,1,12.4375-6.65625l48,32a7.99959,7.99959,0,0,1,0,13.3125Z"/>
     </svg>
 );};

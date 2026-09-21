@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { renderToStaticMarkup } from 'react-dom/server';
 
+import { SERVER_ORIGIN } from '../const';
+
 import { FlacSvg, OnAirSvg, ArrowToLeftSvg, OnAirQuarterSvg, MobileCheckSvg, LocationSvg, TgSvg, PlaySvg } from "../components/Svg";
 import QRCodeStyling from "qr-code-styling";
 
@@ -11,7 +13,10 @@ import { useCurrentStream } from "../features/PlayerSlice";
 import FadeIn from '../components/FadeIn';
 
 import '../styles/info.scss';
-import styles from '../styles/theme.module.scss'; 
+import styles from '../styles/theme.module.scss';
+
+const urlStream = `${SERVER_ORIGIN}/stream/`;
+const urlTg = "https://t.me/o0o0_radio";
 
 const svgPlayString = `data:image/svg+xml;base64,${btoa(
     Array.from(
@@ -75,8 +80,9 @@ const Info = () => {
     const refTgQr = useRef(null);
 
     const qrStream = new QRCodeStyling({
-        width: 145,
-        height: 145,
+        width: 175,
+        height: 175,
+        data: `${urlStream}${currentStream}`,
         type: 'svg',
         dotsOptions: {
             color: 'currentColor',
@@ -84,14 +90,14 @@ const Info = () => {
         },
         backgroundOptions: {
             color: 'transparent',
-        }                
+        }               
     });
 
     const qrApp = new QRCodeStyling({
-        width: 145,
-        height: 145,
+        width: 175,
+        height: 175,
         image: svgPlayString,
-        data: 'https://o0o0.online',
+        data: SERVER_ORIGIN,
         type: 'svg',
         dotsOptions: {
             color: 'currentColor',
@@ -106,10 +112,10 @@ const Info = () => {
     });
 
     const qrTg = new QRCodeStyling({
-        width: 145,
-        height: 145,
+        width: 175,
+        height: 175,
         image: svgTgString,
-        data: 'https://t.me/o0o0_radio',
+        data: urlTg,
         type: 'svg',
         dotsOptions: {
             color: 'currentColor',
@@ -119,7 +125,7 @@ const Info = () => {
             color: 'transparent',
         },
         imageOptions: {
-            imageSize: 0.3
+            imageSize: 0.35
         }             
     });
 
@@ -139,13 +145,13 @@ const Info = () => {
 
     useEffect(() => {
         qrStream.update({
-            data: `https://o0o0.online/stream/${currentStream}`
+            data: `${urlStream}${currentStream}`
         });
         qrApp.update({
-            data: 'https://o0o0.online'
+            data: SERVER_ORIGIN
         });
         qrTg.update({
-            data: 'https://t.me/o0o0_radio'
+            data: urlTg
         });
         qrStream.append(refStreamQr.current);
         qrApp.append(refAppQr.current);
@@ -175,18 +181,20 @@ const Info = () => {
             {tab === 'stream' && <div className='info-panel'>
                 <div className='title'>{streamInfo ? streamInfo.title : ''}</div>
                 <div className='basic'>
-                    <div className='tile qr'><a ref={refStreamQr} href={`https://o0o0.online/stream/${currentStream}`} /></div>                    
-                    {streamInfo && streamInfo.country && streamInfo.country.trim() !== '' && <div className='tile country'>
-                        <LocationSvg />{streamInfo.country}
-                    </div>}
-                    <div className='tile onair'>{streamInfo && streamInfo.started ? <>
-                        <OnAirSvg />ON AIR<br/>since {new Date(streamInfo.started).toLocaleString("en-US", {year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false})}</> : <>OFF AIR</>}
+                    <div className='tile qr'><a ref={refStreamQr} href={`${urlStream}${currentStream}`} /></div>
+                    <div className='tiles'>
+                        {streamInfo && streamInfo.country && streamInfo.country.trim() !== '' && <div className='tile country'>
+                            <LocationSvg />{streamInfo.country}
+                        </div>}
+                        {streamInfo && streamInfo.contentType && <div className='tile codec'>{streamInfo.contentType}</div>}
+                        {streamInfo && streamInfo.consumers > 0 && <div className='tile track'>
+                            <span>Listeners:&nbsp;</span>
+                            <span>{streamInfo.consumers}</span>
+                        </div>}
+                        <div className='tile onair'>{streamInfo && streamInfo.started ? <>
+                            <OnAirSvg />ON AIR<br/>since {new Date(streamInfo.started).toLocaleString("en-US", {year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false})}</> : <>OFF AIR</>}
+                        </div>
                     </div>
-                    {streamInfo && streamInfo.contentType && <div className='tile codec'>{streamInfo.contentType}</div>}
-                    {streamInfo && streamInfo.consumers > 0 && <div className='tile track'>
-                        <span>Listeners:&nbsp;</span>
-                        <span>{streamInfo.consumers}</span>
-                    </div>}
                 </div>
                 <div className='extra'>
                     {streamInfo && streamInfo.track && <div className='tile track'>
@@ -207,7 +215,7 @@ const Info = () => {
             {tab === 'app' && <div className='info-panel app'>
                 <div className='rev'>rev. {process.env.GIT_COMMIT} - {process.env.GIT_DATE}</div>
                 <div className='basic'>
-                    <div className='tile qr'><a ref={refAppQr} href="https://o0o0.online" /></div>
+                    <div className='tile qr'><a ref={refAppQr} href={SERVER_ORIGIN} /></div>
                     <div className='tile qr'><a ref={refTgQr} href="https://t.me/o0o0_radio" /></div>
                 </div>
             </div>}

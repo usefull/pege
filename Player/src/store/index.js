@@ -37,7 +37,7 @@ const rootPersistConfig = {
     key: 'root',
     storage,
     version: 1,
-    blacklist: ['streams']
+    blacklist: ['streams', 'player']
 };
 
 const persistedReducer = persistReducer(rootPersistConfig, rootReducer);
