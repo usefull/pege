@@ -34,8 +34,8 @@ body {
         @mixin tumb-styles {
             background-color: $color-bkg-light;
             box-shadow:
-                0 0 0.3em white inset,
-                0 0 0.25em $color-text;
+                0 0 0.35em white inset,
+                0 0 0.4em $color-black;
             cursor: pointer;
             border: 1px $color-bkg solid;
             border-radius: 0;
@@ -54,7 +54,7 @@ body {
         @mixin track-styles {
             background-color: $color-bkg-light;
             border-radius: 0.3em;
-            box-shadow: 0 0 0.3em $color-text inset,
+            box-shadow: 0 0 0.35em $color-black inset,
         }
 
         &::-webkit-slider-runnable-track {
@@ -77,11 +77,9 @@ body {
         }
 
         .svg-button {
-            opacity: 0.7;
             transition: opacity 0.25s, transform 0.25s;
 
             &:hover {
-                opacity: 1;
                 cursor: pointer;
             }
 
@@ -141,8 +139,8 @@ body {
                 font-size: 25px;
                 line-height: 50px;
                 display: block;
-                text-align: center;;
-                opacity: 0.7;
+                text-align: center;
+                font-weight: 350;
             }
         }
     }

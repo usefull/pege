@@ -30,8 +30,8 @@
     }
 
     svg {
-        --color1: #5d4a1fa0;
-        --color2: #5d4a1f;
+        --color1: #4d3a0fa0;
+        --color2: #4d3a0f;
         position: absolute;
         left: 0;
         top: 0;
@@ -41,7 +41,7 @@
         cursor:pointer;
 
         &:hover {
-            --color1: #5d4a1f90;
+            --color1: #4d3a0f90;
         }
     }
 

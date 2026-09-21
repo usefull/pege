@@ -28,40 +28,40 @@
             &:first-child {
                 .zero-cutoff::after {
                     position: absolute;
-                    font-size: 0.8em;
-                    font-weight: 300;
+                    font-size: 1em;
+                    font-weight: 400;
                     content: "0";                    
                 }
                 .min-cutoff::after {
                     position: absolute;
                     font-size: 1em;
-                    font-weight: 300;
+                    font-weight: 400;
                     content: "-12dB";                 
                 }
                 .max-cutoff::after {
                     position: absolute;
                     font-size: 1em;
-                    font-weight: 300;
+                    font-weight: 400;
                     content: "+12dB";                 
                 }
             }
             &:last-child {
                 .zero-cutoff::after {
                     position: absolute;
-                    font-size: 0.8em;
-                    font-weight: 300;
+                    font-size: 1em;
+                    font-weight: 400;
                     content: "0";                    
                 }
                 .min-cutoff::after {
                     position: absolute;
                     font-size: 1em;
-                    font-weight: 300;
+                    font-weight: 400;
                     content: "-12dB";                 
                 }
                 .max-cutoff::after {
                     position: absolute;
                     font-size: 1em;
-                    font-weight: 300;
+                    font-weight: 400;
                     content: "+12dB";                 
                 }
             }
@@ -72,7 +72,7 @@
 
             .zero-cutoff {
                 position: absolute;
-                border: 1px solid #{$color-text}77;
+                border: 1px solid #{$color-text}88;
             }
 
             .hz-label {
@@ -80,15 +80,15 @@
                 display: flex;
                 justify-content: center;
                 font-size: 0.8em;
-                font-weight: 300;
+                font-weight: 400;
 
                 .min-cutoff {
                     position: absolute;
-                    border: 1px solid #{$color-text}77;
+                    border: 1px solid #{$color-text}88;
                 }
                 .max-cutoff {
                     position: absolute;
-                    border: 1px solid #{$color-text}77;
+                    border: 1px solid #{$color-text}88;
                 }
             }
         }

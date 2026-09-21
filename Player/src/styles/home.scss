@@ -23,8 +23,6 @@
                 svg {
                     width: 30px;
                     height: 30px;
-                    --color1: #5d4a1fa0;
-                    --color2: #5d4a1f;
                     cursor: pointer;
                 }
             }
@@ -65,10 +63,9 @@
             }
 
             .flac-label {
-                width: 0.75em;
-                height: 0.75em;
-                opacity: 0.85;
-                transform: translate(5px, 0px);
+                width: 0.7em;
+                height: 0.7em;
+                transform: translate(7px, 0px);
             }
 
             .buffering {

@@ -2,7 +2,7 @@
 
 .toggle-switch {
     font-size: 23px;
-    -webkit-tap-highlight-color: transparent;
+    //-webkit-tap-highlight-color: transparent;
     position: relative;
     display: inline-flex;
     gap: 0.25em;
@@ -28,11 +28,11 @@
         display: inline-block;
         border-radius: 1em;
         height: 1em;
-        background: radial-gradient(circle at 25% 50%, #{$color-text}66, #{$color-text}11);
+        background: radial-gradient(circle at 25% 50%, #{$color-text}66, #{$color-text}22);
         width: 2em;
 
         &.on {
-            background: radial-gradient(circle at 75% 50%, $color-text, #{$color-text}99);
+            background: radial-gradient(circle at 75% 50%, $color-text, #{$color-text}aa);
         }
     }
 
@@ -44,7 +44,7 @@
         background: radial-gradient($color-bkg, $color-bkg-light);
         border-radius: 50%;
         transition: transform 0.15s ease;
-        box-shadow:  0 0 0.2em $color-text;
+        box-shadow:  0 0 0.35em $color-black;
 
         &.on {
             transform: translate(1em, 0);
@@ -62,8 +62,8 @@
         white-space: nowrap;
         
         &.on::after, &.off::after {
-            font-size: 0.6em;
-            font-weight: 300;
+            font-size: 0.65em;
+            font-weight: 400;
         }
 
         &.on::after {
