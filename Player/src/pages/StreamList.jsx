@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 
 import { useStreams, useUploadStreams } from '../features/StreamsSlice';
@@ -19,12 +19,14 @@ const StreamList = () => {
     const uploadStreams = useUploadStreams();
     const isPlaying = useIsPlaying();
     const togglePlay = useTogglePlay();
+    const selectRef = useRef(null);
 
     const [filter, setFilter] = useState('');
 
     useEffect(() => {
         if (Date.now() - streams.when > 200000)
             uploadStreams();
+        selectRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, []);
 
     return (<FadeIn>
@@ -42,7 +44,7 @@ const StreamList = () => {
                 </div>
             </div>
             <div className='list'>{!streams.items ? <></> : streams.items.filter(s => filter === '' ? true : s.title.toLowerCase().includes(filter.toLowerCase())).map((s, i) =>
-                <div key={i} className={`item${s.id === currentStream ? ' select' : ''}`} onClick={() => {
+                <div ref={s.id === currentStream ? selectRef : null} key={i} className={`item${s.id === currentStream ? ' select' : ''}`} onClick={() => {
                     setCurrentStream(s.id);
                     if (!isPlaying) togglePlay();
                     navigate(`/`);
