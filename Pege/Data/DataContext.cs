@@ -38,52 +38,6 @@ namespace Pege.Data
                     v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : null
                 );
 
-            modelBuilder.Entity<FileAudioStreamInfo>().HasData(
-                new FileAudioStreamInfo
-                {
-                    Id = "_",
-                    Title = "o0o0.online",
-                    Country = "Russia",
-                    ImplType = "RandomFileAudioStream",
-                    Path = "audio",
-                    Registered = DateTime.Parse("2026-01-01T00:00:00Z", null, System.Globalization.DateTimeStyles.AdjustToUniversal),
-                    TelegramChannelId = "-1004378303357"
-                }
-            );
-            modelBuilder.Entity<RelayAudioStreamInfo>().HasData(
-                new RelayAudioStreamInfo
-                {
-                    Id = "a",
-                    Title = "Arrow Classic Rock",
-                    Country = "Netherlands",
-                    ImplType = "RelayAudioStream",
-                    Uri = "http://stream.gal.io/arrow",
-                    Registered = DateTime.Parse("2026-01-01T00:00:00Z", null, System.Globalization.DateTimeStyles.AdjustToUniversal)
-                }
-            );
-            modelBuilder.Entity<RelayAudioStreamInfo>().HasData(
-                new RelayAudioStreamInfo
-                {
-                    Id = "hr",
-                    Title = "Hard Rock Radio FM",
-                    Country = "USA",
-                    ImplType = "RelayShoutcastV1AudioStream",
-                    Uri = "http://67.249.184.45:8015",
-                    Registered = DateTime.Parse("2026-01-01T00:00:00Z", null, System.Globalization.DateTimeStyles.AdjustToUniversal)
-                }
-            );
-            modelBuilder.Entity<RelayAudioStreamInfo>().HasData(
-                new RelayAudioStreamInfo
-                {
-                    Id = "r",
-                    Title = "Radio Record - Russian Gold",
-                    Country = "Russia",
-                    ImplType = "RelayAudioStream",
-                    Uri = "https://radiorecord.hostingradio.ru/russiangold96.aacp",
-                    Registered = DateTime.Parse("2026-01-01T00:00:00Z", null, System.Globalization.DateTimeStyles.AdjustToUniversal)
-                }
-            );
-
             base.OnModelCreating(modelBuilder);
         }
 
