@@ -7,6 +7,8 @@ namespace Pege.Data
     {
         public DbSet<StreamInfo> Streams { get; set; }
 
+        public DbSet<Session> Sessions { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<StreamInfo>().UseTphMappingStrategy();
@@ -37,6 +39,37 @@ namespace Pege.Data
                     v => v,
                     v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : null
                 );
+
+            modelBuilder.Entity<Session>()
+                .Property(s => s.Id)
+                .ValueGeneratedNever();
+
+            modelBuilder.Entity<Session>()
+                .Property(s => s.Connected)
+                .HasConversion(
+                    v => v,
+                    v => DateTime.SpecifyKind(v, DateTimeKind.Utc)
+                );
+
+            modelBuilder.Entity<Session>()
+                .Property(s => s.Closed)
+                .HasConversion(
+                    v => v,
+                    v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : null
+                );
+
+            modelBuilder.Entity<Session>()
+                .HasIndex(s => s.Connected)
+                .HasDatabaseName("IX_Sessions_Connected");
+
+            modelBuilder.Entity<Session>()
+                .HasIndex(s => s.Closed)
+                .HasDatabaseName("IX_Sessions_Closed")
+                .HasFilter("\"Closed\" IS NOT NULL");
+
+            modelBuilder.Entity<Session>()
+                .HasIndex(s => new { s.StreamId, s.Connected })
+                .HasDatabaseName("IX_Sessions_StreamId_Connected");
 
             base.OnModelCreating(modelBuilder);
         }
