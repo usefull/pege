@@ -59,6 +59,13 @@ namespace Pege.Data
                 );
 
             modelBuilder.Entity<Session>()
+                .Property(s => s.Updated)
+                .HasConversion(
+                    v => v,
+                    v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : null
+                );
+
+            modelBuilder.Entity<Session>()
                 .HasIndex(s => s.Connected)
                 .HasDatabaseName("IX_Sessions_Connected");
 

@@ -1,5 +1,6 @@
-﻿
+﻿using Pege.Data;
 using Pege.Entities;
+using Pege.Extensions;
 using Pege.Interfaces;
 using Serilog;
 using System.Diagnostics;
@@ -10,7 +11,8 @@ namespace Pege.Streaming
     /// <summary>
     /// Коннектор аудио-стрима и контроллера.
     /// </summary>
-    internal partial class AudioStreamConnector : IConnector
+    /// <param name="sessionRegistry">Сервис регистрации сессий слушателей.</param>
+    internal partial class AudioStreamConnector(ISessionRegistry sessionRegistry) : IConnector
     {
         private const int IcyMetaInterval = 131072;
         private static readonly byte[] EmptyMetaBlock = [0x00];
@@ -30,7 +32,7 @@ namespace Pege.Streaming
             bool supportIcy = httpRequest.Headers.ContainsKey("Icy-MetaData")
                && httpRequest.Headers["Icy-MetaData"] == "1";
 
-            string userAgent = httpRequest.Headers.UserAgent.ToString() ?? "";
+            string userAgent = httpRequest.Headers.UserAgent.ToString() ?? string.Empty;
             bool isBrowser = userAgent.Contains("Mozilla") ||
                              userAgent.Contains("Chrome") ||
                              userAgent.Contains("Safari") ||
@@ -49,9 +51,11 @@ namespace Pege.Streaming
                 httpResponse.Headers.Append("icy-metaint", IcyMetaInterval.ToString());
 
             var (reader, sessionId) = stream.Subscribe();
+            _ = sessionRegistry.RegisterNewAsync(sessionId, stream.Status.Id ?? string.Empty, httpRequest.HttpContext.GetClientIp(), userAgent);
 
             int bytesSentInCurrentInterval = 0;
             byte[]? currentMetadata = null;
+            var closeReason = SessionCloseReason.ClientDisconnect;
 
             try
             {
@@ -71,6 +75,7 @@ namespace Pege.Streaming
                         var ts = Stopwatch.GetTimestamp();
 
                         await httpResponse.Body.WriteAsync(chunk.Data, linkedCts.Token);
+                        _ = sessionRegistry.UpdateAsync(sessionId, chunk.Data.Length);
 
                         if (_delayMeasurementMode)
                         {
@@ -89,6 +94,7 @@ namespace Pege.Streaming
                         int bytesToWrite = Math.Min(audioData.Length, bytesLeftInInterval);
 
                         await httpResponse.Body.WriteAsync(audioData[..bytesToWrite], linkedCts.Token);
+                        _ = sessionRegistry.UpdateAsync(sessionId, bytesToWrite);
 
                         if (bytesSentInCurrentInterval + bytesToWrite == IcyMetaInterval)
                         {
@@ -112,11 +118,23 @@ namespace Pege.Streaming
                         }
                     }
                 }
+
+                closeReason = SessionCloseReason.Kicked;
             }
-            catch (Exception ex) when (ex is OperationCanceledException or IOException) { }
+            catch (Exception ex) when (ex is OperationCanceledException) 
+            {
+                if (!cancellationToken.IsCancellationRequested)
+                    closeReason = SessionCloseReason.Timeout;
+            }
+            catch (Exception ex)
+            {
+                closeReason = SessionCloseReason.Error;
+                throw;
+            }
             finally
             {
                 stream.Unsubscribe(sessionId);
+                _ = sessionRegistry.SetClosedAsync(sessionId, closeReason);
             }
         }
 

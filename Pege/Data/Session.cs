@@ -53,6 +53,11 @@ namespace Pege.Data
         public DateTime? Closed { get; set; }
 
         /// <summary>
+        /// Дата/время обновления информации о сессии (UTC).
+        /// </summary>
+        public DateTime? Updated { get; set; }
+
+        /// <summary>
         /// Количество байт, отданных слушателю за сессию.
         /// </summary>
         public long BytesSent { get; set; }

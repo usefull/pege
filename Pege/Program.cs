@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Pege.Data;
 using Pege.Entities;
+using Pege.Interfaces;
 using Pege.Resource;
 using Pege.Services;
 using Pege.Startup;
@@ -53,6 +54,8 @@ try
     builder.Services.AddTransient<AudioStreamConnector>();
 
     builder.Services.AddSingleton(sp => new TelegramService(builder.Configuration["Telegram:BotToken"]));
+
+    builder.Services.AddSingleton<ISessionRegistry, SessionRegistry>();
 
     builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
     builder.Services.AddProblemDetails();
@@ -107,6 +110,8 @@ try
     app.UseAuthorization();
 
     app.MapControllers();
+
+    app.Services.GetService<ISessionRegistry>()?.SetAllClosedAsync();
 
     app.Run();
 }

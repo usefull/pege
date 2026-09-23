@@ -61,6 +61,15 @@ namespace Pege.Resource {
         }
         
         /// <summary>
+        ///   Ищет локализованную строку, похожую на Error occured while attempting to mark all active sessions as closed: {0}.
+        /// </summary>
+        internal static string AllActiveSessionSetClosedError {
+            get {
+                return ResourceManager.GetString("AllActiveSessionSetClosedError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Ищет локализованную строку, похожую на The application launch error:
         ///{0}.
         /// </summary>

@@ -258,4 +258,7 @@ Input file: {0}</value>
   <data name="TrackEncodingError" xml:space="preserve">
     <value>Track encoding error on file '{0}': {1}</value>
   </data>
+  <data name="AllActiveSessionSetClosedError" xml:space="preserve">
+    <value>Error occured while attempting to mark all active sessions as closed: {0}</value>
+  </data>
 </root>
