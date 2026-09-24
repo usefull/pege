@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Pege.Data;
 using Pege.Entities;
-using Pege.Extensions;
 using Pege.Interfaces;
 using Pege.Resource;
 using Serilog;
@@ -12,8 +11,6 @@ namespace Pege.Services
     public class SessionRegistry : ISessionRegistry, IDisposable
     {
         private ConcurrentDictionary<Guid, SessionInfo> sessions = new();
-
-        private readonly ConcurrentDictionary<string, string> ipGeo = new();
 
         private readonly IServiceProvider serviceProvider;
 
@@ -35,11 +32,7 @@ namespace Pege.Services
         /// <returns>Задача, представляющая асинхронную операцию регистрации новой сессии.</returns>
         public async Task RegisterNewAsync(Guid id, string streamId, string? ip, string userAgent)
         {
-            if (sessions.ContainsKey(id))
-                Log.Warning("REGISTER {Id} already exists in sessions (probably created by UpdateAsync first)", id);
-
             var connected = DateTime.UtcNow;
-            var geo = ipGeo.GetOrAdd(ip ?? string.Empty, await ip.GetGeoFromIp());
             _ = sessions.GetOrAdd(id, new SessionInfo
             {
                 Id = id,
@@ -47,7 +40,6 @@ namespace Pege.Services
                 StreamId = streamId,
                 Ip = ip,
                 UserAgent = userAgent,
-                Geo = geo,
                 Connected = connected,
             });
         }
