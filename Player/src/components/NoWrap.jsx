@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
 import '../styles/no-wrap.scss';
 
-const NoWrap = ({ children }) => {
+const NoWrap = ({ onClick, children }) => {
     const containerRef = useRef(null);
     const innerRef = useRef(null);
     const [isHidden, setIsHidden] = useState(false);
@@ -27,7 +27,9 @@ const NoWrap = ({ children }) => {
     }, [children]);
 
     return (
-        <div ref={containerRef} className={`no-wrap ${isHidden ? 'hidden' : ''}`}>
+        <div ref={containerRef} className={`no-wrap ${isHidden ? 'hidden' : ''}`} onClick={() => {
+            if (onClick) onClick();
+        }}>
             <div ref={innerRef} className="no-wrap__inner">
                 {children}
             </div>

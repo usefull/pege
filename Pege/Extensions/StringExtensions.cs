@@ -33,30 +33,5 @@ namespace Pege.Extensions
 
         public static bool IsMultipartContentType(this string contentType) =>
             !string.IsNullOrEmpty(contentType) && contentType.Contains("multipart/", StringComparison.OrdinalIgnoreCase);
-
-        /// <summary>
-        /// Метод определения геоинформации по IP-адресу.
-        /// </summary>
-        /// <param name="ip">IP-адрес</param>
-        public static async Task<string> GetGeoFromIp(this string? ip)
-        {
-            if (string.IsNullOrWhiteSpace(ip)) return string.Empty;
-
-            var ipapiClient = new IPAPIClient.IPAPIClient();
-
-            IPAPIClient.Result? result = null;
-            try
-            {
-                result = await ipapiClient.SearchAsync(ip);
-            }
-            catch { }
-
-            return string.Join(", ", new[] {
-                string.IsNullOrWhiteSpace(result?.Country) ? null : result?.Country,
-                string.IsNullOrWhiteSpace(result?.District) ? null : result?.District,
-                string.IsNullOrWhiteSpace(result?.City) ? null : result?.City,
-                string.IsNullOrWhiteSpace(result?.Organization) ? null : result?.Organization,
-            }.Where(i => i != null));
-        }
     }
 }

@@ -17,6 +17,7 @@ try
         .MinimumLevel.Information()
         .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
         .MinimumLevel.Override("Microsoft.Hosting.Lifetime", Serilog.Events.LogEventLevel.Information)
+        .MinimumLevel.Override("System.Net.Http.HttpClient", Serilog.Events.LogEventLevel.Warning)
         .Enrich.FromLogContext()
         .WriteTo.Console(
             outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Stream} {Message:lj}{NewLine}{Exception}"
@@ -59,6 +60,13 @@ try
 
     builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
     builder.Services.AddProblemDetails();
+
+    builder.Services.AddHttpClient<IGeoIpService, GeoIpService>(client =>
+    {
+        client.BaseAddress = new Uri("http://ip-api.com/");
+        client.Timeout = TimeSpan.FromSeconds(10);
+        //client.DefaultRequestHeaders.Add("Accept", "application/json");
+    });
 
     builder.Services.AddControllers()
         .AddJsonOptions(options =>

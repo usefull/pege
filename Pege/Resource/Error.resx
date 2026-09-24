@@ -261,4 +261,10 @@ Input file: {0}</value>
   <data name="AllActiveSessionSetClosedError" xml:space="preserve">
     <value>Error occured while attempting to mark all active sessions as closed: {0}</value>
   </data>
+  <data name="SessionFlushError" xml:space="preserve">
+    <value>Sessions database flush error: {0}</value>
+  </data>
+  <data name="GeoReadingError" xml:space="preserve">
+    <value>Geo data reading error</value>
+  </data>
 </root>

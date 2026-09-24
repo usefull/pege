@@ -51,9 +51,9 @@ const Home = () => {
                 <MainButton title="Play / Stop" onClick={() => togglePlay()}></MainButton>
                 <ShiftButton title="Next stream" onClick={() => setNextStream(true)}></ShiftButton>
             </div>
-            <div className="header-panel" onClick={() => navigate(`/info`)}>
-                <MarqueeText>{currentStreamInfo ? currentStreamInfo.title : ''}</MarqueeText>
-                <NoWrap>
+            <div className="header-panel">
+                <MarqueeText onClick={() => navigate(`/info`)}>{currentStreamInfo ? currentStreamInfo.title : ''}</MarqueeText>
+                <NoWrap onClick={() => navigate(`/info`)}>
                     <span>{currentStreamInfo ? currentStreamInfo.country : ''}</span>
                     <InfoSvg />
                 </NoWrap>

@@ -26,7 +26,7 @@ const StreamList = () => {
     useEffect(() => {
         if (Date.now() - streams.when > 200000)
             uploadStreams();
-        selectRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        selectRef.current?.scrollIntoView({ block: 'start' });
     }, []);
 
     return (<FadeIn>

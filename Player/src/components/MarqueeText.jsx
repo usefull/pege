@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import '../styles/marquee-text.scss';
 
-const MarqueeText = ({children }) => {
+const MarqueeText = ({ onClick, children }) => {
   const containerRef = useRef(null);
   const textRef = useRef(null);
   const [isOverflowing, setIsOverflowing] = useState(false);
@@ -37,6 +37,9 @@ const MarqueeText = ({children }) => {
     <div 
       ref={containerRef} 
       className={`marquee-container ${isOverflowing ? 'is-overflowing' : ''}`}
+      onClick={() => {
+        if (onClick) onClick();
+      }}
     >
       <span ref={textRef}>{children}</span>
       <div className='shadow'></div>

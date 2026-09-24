@@ -171,6 +171,15 @@ namespace Pege.Resource {
         }
         
         /// <summary>
+        ///   Ищет локализованную строку, похожую на Geo data reading error.
+        /// </summary>
+        internal static string GeoReadingError {
+            get {
+                return ResourceManager.GetString("GeoReadingError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Ищет локализованную строку, похожую на A type implementing stream functionality is required..
         /// </summary>
         internal static string ImplTypeIsRequired {
@@ -258,6 +267,15 @@ namespace Pege.Resource {
         internal static string RegisteredIsRequired {
             get {
                 return ResourceManager.GetString("RegisteredIsRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Ищет локализованную строку, похожую на Sessions database flush error: {0}.
+        /// </summary>
+        internal static string SessionFlushError {
+            get {
+                return ResourceManager.GetString("SessionFlushError", resourceCulture);
             }
         }
         

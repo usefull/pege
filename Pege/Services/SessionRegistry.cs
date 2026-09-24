@@ -8,14 +8,35 @@ using System.Collections.Concurrent;
 
 namespace Pege.Services
 {
-    public class SessionRegistry : ISessionRegistry, IDisposable
+    /// <summary>
+    /// Сервис регистрации состояния сессий слушателей в БД.
+    /// </summary>
+    public sealed class SessionRegistry : ISessionRegistry, IDisposable
     {
+        /// <summary>
+        /// Состояния сессий, ожидающих обовления в БД.
+        /// </summary>
         private ConcurrentDictionary<Guid, SessionInfo> sessions = new();
 
+        /// <summary>
+        /// Кешированные геоданные IP-адресов.
+        /// </summary>
+        private ConcurrentDictionary<string, string> ipGeo = new();
+
+        /// <summary>
+        /// Провайдер сервисов DI.
+        /// </summary>
         private readonly IServiceProvider serviceProvider;
 
+        /// <summary>
+        /// Механизм остановки периодического обновления БД при уничтожении сервиса.
+        /// </summary>
         private readonly CancellationTokenSource cts = new();
 
+        /// <summary>
+        /// Конструктор.
+        /// </summary>
+        /// <param name="serviceProvider">Провайдер сервисов DI.</param>
         public SessionRegistry(IServiceProvider serviceProvider)
         {
             this.serviceProvider = serviceProvider;
@@ -92,29 +113,66 @@ namespace Pege.Services
                 try
                 {
                     using var scope = serviceProvider.CreateAsyncScope();
+                    var geoService = scope.ServiceProvider.GetService<IGeoIpService>();
                     var dataContext = scope.ServiceProvider.GetService<DataContext>();
                     if (dataContext == null) continue;
 
                     var snapshot = Interlocked.Exchange(ref sessions, new ConcurrentDictionary<Guid, SessionInfo>());
                     if (snapshot.IsEmpty) continue;
 
-                    await dataContext.Sessions.AddRangeAsync(snapshot.Values.Where(si => si.IsNew).Select(si => si.ToSession()), cancellationToken);
-
-                    _ = snapshot.Values.Where(si => !si.IsNew).LeftJoin(dataContext.Sessions, si => si.Id, s => s.Id, (si, s) =>
+                    var toInsert = new List<Session>();
+                    foreach (var si in snapshot.Values.Where(si => si.IsNew))
                     {
-                        if (s == null) return null;
-                        s.Updated = si.Updated;
-                        s.BytesSent += si.BytesSent;
-                        s.Closed = si.Closed;
-                        s.CloseReason = si.CloseReason;
-                        return s;
-                    }).ToList();
+                        var s = si.ToSession();
+                        var ip = s?.Ip ?? string.Empty;
+
+                        if (!ipGeo.TryGetValue(ip, out var geo))
+                        {
+                            geo = geoService != null ? await geoService.GetGeoFromIpAsync(s?.Ip, cancellationToken) : null;
+                            if (geo != null)
+                                ipGeo.TryAdd(ip, geo);
+                        }
+
+                        s?.Geo = geo;
+                        toInsert.Add(s);
+                    }
+
+                    await dataContext.Sessions.AddRangeAsync(toInsert, cancellationToken);
+
+                    var countToUpdate = snapshot.Values.Count(s => !s.IsNew);
+                    if (countToUpdate > 0)
+                    {
+                        var ids = new List<Guid>(countToUpdate);
+                        var toUpdate = new List<SessionInfo>(countToUpdate);
+
+                        foreach (var si in snapshot.Values)
+                        {
+                            if (!si.IsNew)
+                            {
+                                toUpdate.Add(si);
+                                ids.Add(si.Id);
+                            }
+                        }
+
+                        var entities = await dataContext.Sessions
+                            .Where(s => ids.Contains(s.Id))
+                            .ToDictionaryAsync(s => s.Id, cancellationToken);
+
+                        foreach (var si in toUpdate)
+                        {
+                            if (!entities.TryGetValue(si.Id, out var entity)) continue;
+                            entity.Updated = si.Updated;
+                            entity.BytesSent += si.BytesSent;
+                            entity.Closed = si.Closed;
+                            entity.CloseReason = si.CloseReason;
+                        }
+                    }
 
                     await dataContext.SaveChangesAsync(cancellationToken);
                 }
                 catch (Exception ex)
                 {
-                    Log.Error("DB flush error");
+                    Log.Error(string.Format(Error.SessionFlushError, ex.Message));
                 }
             }
         }
