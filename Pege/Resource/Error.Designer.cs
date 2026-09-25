@@ -243,6 +243,15 @@ namespace Pege.Resource {
         }
         
         /// <summary>
+        ///   Ищет локализованную строку, похожую на PassKey and PassWord are required in the configuration.
+        /// </summary>
+        internal static string PassKeyAndWordNotSpecified {
+            get {
+                return ResourceManager.GetString("PassKeyAndWordNotSpecified", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Ищет локализованную строку, похожую на A path is required for file streams..
         /// </summary>
         internal static string PathIsRequired {

@@ -27,6 +27,7 @@ namespace Pege.Controllers
         /// Пример запроса флагами q и r: ?qr</remarks>
         /// <returns>Результаты загрузки файлов.</returns>
         /// <exception cref="ValidationException">В случае, если поток не поддерживает загрузку.</exception>
+        [Auth]
         [HttpPatch]
         [DisableRequestSizeLimit]
         public async Task<IActionResult> Upload()
@@ -60,6 +61,7 @@ namespace Pege.Controllers
         /// <remarks>Будут удалены все файлы, найденные по имени до точки расширения.</remarks>
         /// <returns>Результат операции.</returns>
         /// <exception cref="ValidationException">В случае, если поток не поддерживает загрузку.</exception>
+        [Auth]
         [HttpDelete("{filename}")]
         public async Task<IActionResult> Delete(string streamId, string filename)
         {

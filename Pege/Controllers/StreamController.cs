@@ -29,6 +29,7 @@ namespace Pege.Controllers
             return await GetStatusAsync(null);
         }
 
+        [Auth]
         [HttpPut("start/{id?}")]
         public async Task<IActionResult> StartAsync(string? id)
         {
@@ -42,6 +43,7 @@ namespace Pege.Controllers
             return Ok();
         }
 
+        [Auth]
         [HttpPut("stop/{id?}")]
         public async Task<IActionResult> StopAsync(string? id)
         {
@@ -55,6 +57,7 @@ namespace Pege.Controllers
             return Ok();
         }
 
+        [Auth]
         [HttpPost]
         public async Task<IActionResult> PostStreamAsync([FromBody] StreamDescriptor streamStatus)
         {
@@ -63,6 +66,7 @@ namespace Pege.Controllers
             return Ok(streamInfo);
         }
 
+        [Auth]
         [HttpPut]
         public async Task<IActionResult> PutStreamAsync([FromBody] StreamDescriptor streamDescription)
         {
@@ -71,6 +75,7 @@ namespace Pege.Controllers
             return Ok(streamInfo);
         }
 
+        [Auth]
         [HttpDelete("{streamId}")]
         public async Task<IActionResult> DeleteStreamAsync(string streamId)
         {

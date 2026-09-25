@@ -267,4 +267,7 @@ Input file: {0}</value>
   <data name="GeoReadingError" xml:space="preserve">
     <value>Geo data reading error</value>
   </data>
+  <data name="PassKeyAndWordNotSpecified" xml:space="preserve">
+    <value>PassKey and PassWord are required in the configuration</value>
+  </data>
 </root>

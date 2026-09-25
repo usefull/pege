@@ -113,6 +113,8 @@ ssh "$PROD_VPS_USER@$PROD_VPS_IP" TG_BOT_TOKEN="$TG_BOT_TOKEN" CONTAINER_NAME="$
     # Создаем .env файл
     cat << ENV_EOF > /root/storage/pege.env
 # Создано автоматически при развертывании
+PassKey=${PASSKEY}
+PassWord=${PASSWORD}
 Telegram__BotToken=${TG_BOT_TOKEN}
 DelayMeasurementMode=false
 ConsumerRate__0=0
