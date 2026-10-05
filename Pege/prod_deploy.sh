@@ -67,7 +67,7 @@ scp /tmp/project.tar.gz "$PROD_VPS_USER@$PROD_VPS_IP:/root/pege_build/project.ta
 rm /tmp/project.tar.gz
 
 # Удаленное выполнение команд на VPS
-ssh "$PROD_VPS_USER@$PROD_VPS_IP" TG_BOT_TOKEN="$TG_BOT_TOKEN" CONTAINER_NAME="$CONTAINER_NAME" IMAGE_NAME="$IMAGE_NAME" DOMAIN="$DOMAIN" DOCKER_NETWORK="$DOCKER_NETWORK" 'bash -s' << 'EOF'
+ssh "$PROD_VPS_USER@$PROD_VPS_IP" TG_BOT_TOKEN="$TG_BOT_TOKEN" CONTAINER_NAME="$CONTAINER_NAME" IMAGE_NAME="$IMAGE_NAME" DOMAIN="$DOMAIN" DOCKER_NETWORK="$DOCKER_NETWORK" PASSKEY="$PASSKEY" PASSWORD="$PASSWORD" 'bash -s' << 'EOF'
     set -e
 
     # --- БЛОК ПРОВЕРКИ И УСТАНОВКИ DOCKER ---

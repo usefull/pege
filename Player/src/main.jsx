@@ -37,8 +37,8 @@ if (isTgUserAgent) {
             if (typeof tgWebApp.expand === 'function') {
                 tgWebApp.expand();
             }
-            tgWebApp.setHeaderColor(themeColors.tgColorHeaderBkgLight);
-            tgWebApp.setBottomBarColor(themeColors.tgColorHeaderBkgLight);
+            tgWebApp.setHeaderColor(themeColors.tgColorBkgLight);
+            tgWebApp.setBottomBarColor(themeColors.tgColorBkgLight);
             clearInterval(checkTelegramAPI);
             renderApp();
         }
