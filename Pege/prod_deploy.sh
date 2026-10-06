@@ -74,7 +74,7 @@ ssh "$PROD_VPS_USER@$PROD_VPS_IP" TG_BOT_TOKEN="$TG_BOT_TOKEN" CONTAINER_NAME="$
     if ! command -v docker &> /dev/null; then
         echo "Docker не найден на сервере. Начинаем автоматическую установку..."
         apt-get update && apt-get install -y curl
-        curl -fsSL https://docker.com -o get-docker.sh
+        curl -fsSL https://get.docker.com -o get-docker.sh
         sh get-docker.sh
         rm get-docker.sh
         systemctl enable docker
