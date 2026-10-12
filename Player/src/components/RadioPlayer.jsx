@@ -15,6 +15,33 @@ const INITIAL_RECONNECT_DELAY = 1000;
 const MAX_RECONNECT_DELAY = 16000;
 const FADE_DURATION = 0.4;
 
+const extractAdtsFrames = (buf) => {
+    const frames = [];
+    let offset = 0;
+
+    while (offset + 7 <= buf.length) {
+        // sync word: 0xFF 0xFx (старший ниббл второго байта = 0xF)
+        if (buf[offset] !== 0xFF || (buf[offset + 1] & 0xF0) !== 0xF0) {
+            offset++;
+            continue;
+        }
+
+        // длина ADTS-фрейма: 13 бит, размазанных по байтам 3, 4, 5
+        const frameLen =
+            ((buf[offset + 3] & 0x03) << 11) |
+             (buf[offset + 4] << 3) |
+            ((buf[offset + 5] & 0xE0) >> 5);
+
+        if (frameLen < 7) { offset++; continue; }        // битый фрейм
+        if (offset + frameLen > buf.length) break;        // ждём ещё данных
+
+        frames.push(buf.subarray(offset, offset + frameLen));
+        offset += frameLen;
+    }
+
+    return { frames, remaining: buf.subarray(offset) };
+};
+
 const RadioPlayer = ({ streamUrl }) => {
     const togglePlayRequestId = useTogglePlayRequestId();
     const initialRequestIdRef = useRef(togglePlayRequestId);
@@ -38,6 +65,7 @@ const RadioPlayer = ({ streamUrl }) => {
     const eqGrainsRef = useRef(eqGrains);
 
     const audioQueueRef = useRef([]);
+    const aacByteBufferRef = useRef(new Uint8Array(0));
     const isBufferingRef = useRef(true);
     const reconnectTimeoutRef = useRef(null);
     const consumerTimerRef = useRef(null);
@@ -63,12 +91,6 @@ const RadioPlayer = ({ streamUrl }) => {
             audioChainRef.current.setEqGains(eqGrains);
     }, [eqGrains]);
 
-    useEffect(() => {
-        if (streamUrlRef.current !== streamUrl) setMetadata({});
-        streamUrlRef.current = streamUrl;
-    }, [streamUrl]);
-
-    // === Wake Lock ===
     const requestWakeLock = async () => {
         if (!('wakeLock' in navigator)) return;
         try {
@@ -189,6 +211,7 @@ const RadioPlayer = ({ streamUrl }) => {
 
         nextStartTimeRef.current = 0;
         audioQueueRef.current = [];
+        aacByteBufferRef.current = new Uint8Array(0);
         
         setIsBuffering(false);
     };
@@ -197,6 +220,7 @@ const RadioPlayer = ({ streamUrl }) => {
         if (!isPlayingRef.current) return;
         const currentUrl = streamUrlRef.current;
         abortControllerRef.current = new AbortController();
+        aacByteBufferRef.current = new Uint8Array(0);
 
         try {
             const response = await fetch(currentUrl, {
@@ -426,71 +450,137 @@ const RadioPlayer = ({ streamUrl }) => {
         }
     };
 
-    const decodeAndEnqueue = async (value) => {
-        try {
-            let decoded = null;
-            
-            if (decoderTypeRef.current === 'mp3' && decoderRef.current?.mp3) {
-                decoded = decoderRef.current.mp3.decode(value);
-                if (!decoded || decoded.samplesDecoded === 0 || !decoded.channelData) {
-                return true; // Пропускаем поврежденный чанк MP3
-                }
-            } else if (decoderTypeRef.current === 'aac' && decoderRef.current?.aac) {
-                decoded = await decoderRef.current.aac.decode(value); 
+    const enqueueDecoded = (decoded) => {
+        if (!decoded || !decoded.channelData || decoded.channelData.length === 0) return false;
 
-                // === Если декодер вернул пустоту ===
-                if (!decoded || !decoded.channelData || decoded.channelData.length === 0 || decoded.channelData[0].length === 0) {
-                    console.warn('Декодер вернул пустой результат. Пересоздаем инстанс AAC...');
-                    
-                    // Безопасно очищаем старый инстанс
-                    try {
-                        if (typeof decoderRef.current.aac.destroy === 'function') {
-                            decoderRef.current.aac.destroy();
-                        } else if (typeof decoderRef.current.aac.free === 'function') {
-                            decoderRef.current.aac.free();
-                        }
-                    } catch { /* empty */ }
+        const sampleRate = decoded.sampleRate;
+        let leftData, rightData;
 
-                    // Создаем новый чистый декодер, который адаптируется под изменившиеся каналы
-                    decoderRef.current.aac = await createAACDecoder();
-                    
-                    // Повторно декодируем этот же чанк данных
-                    decoded = await decoderRef.current.aac.decode(value);
+        if (Array.isArray(decoded.channelData)) {
+            leftData = decoded.channelData[0];
+            rightData = decoded.channelData.length > 1 ? decoded.channelData[1] : decoded.channelData[0];
+        } else {
+            leftData = decoded.channelData;
+            rightData = decoded.channelData;
+        }
 
-                    // Если даже новый декодер не справился, пропускаем чанк во избежание зависания
-                    if (!decoded || !decoded.channelData || decoded.channelData.length === 0) {
-                        return true; 
-                    }
-                }
-            } else {
-                return false;
+        const samplesCount = leftData.length;
+        if (samplesCount === 0) return false;
+
+        audioQueueRef.current.push({
+            leftData,
+            rightData,
+            samplesCount,
+            sampleRate,
+            duration: samplesCount / sampleRate,
+        });
+
+        return true;
+    };
+
+const decodeAndEnqueue = async (value) => {
+    try {
+        if (decoderTypeRef.current === 'mp3' && decoderRef.current?.mp3) {
+            const decoded = decoderRef.current.mp3.decode(value);
+            if (!decoded || decoded.samplesDecoded === 0 || !decoded.channelData) {
+                return true; // повреждённый чанк MP3 — пропускаем
             }
+            enqueueDecoded(decoded);
+            return true;
+        }
 
-            if (decoded && decoded.channelData && decoded.channelData.length > 0) {
-                const sampleRate = decoded.sampleRate;
-                let leftData, rightData;
-                
-                // Нормализация Mono потока в Stereo, чтобы Web Audio API работал стабильно
-                if (Array.isArray(decoded.channelData)) {
-                    leftData = decoded.channelData[0];
-                    rightData = decoded.channelData.length > 1 ? decoded.channelData[1] : decoded.channelData[0];
-                } else {
-                    leftData = decoded.channelData;
-                    rightData = decoded.channelData;
-                }
+        if (decoderTypeRef.current === 'aac' && decoderRef.current?.aac) {
+            const merged = new Uint8Array(aacByteBufferRef.current.length + value.length);
+            merged.set(aacByteBufferRef.current, 0);
+            merged.set(value, aacByteBufferRef.current.length);
 
-                const samplesCount = leftData.length;
-                if (samplesCount === 0) return false;
-                
-                const duration = samplesCount / sampleRate;
-                audioQueueRef.current.push({ leftData, rightData, samplesCount, sampleRate, duration });
+            const { frames, remaining } = extractAdtsFrames(merged);
+            aacByteBufferRef.current = remaining;
+
+            for (const frame of frames) {
+                const decodedFrame = await decoderRef.current.aac.decode(frame);
+                const hasData = !!(decodedFrame?.channelData?.[0]?.length);
+                if (!hasData) continue;
+                enqueueDecoded(decodedFrame);
             }
             return true;
-        } catch (decodeError) {
-            console.warn('Ошибка в decodeAndEnqueue:', decodeError);
-            return false;
         }
-    };
+
+        return false;
+    } catch (decodeError) {
+        console.warn('Ошибка в decodeAndEnqueue:', decodeError);
+        return false;
+    }
+};
+
+    //     try {
+    //         let decoded = null;
+            
+    //         if (decoderTypeRef.current === 'mp3' && decoderRef.current?.mp3) {
+    //             decoded = decoderRef.current.mp3.decode(value);
+    //             if (!decoded || decoded.samplesDecoded === 0 || !decoded.channelData) {
+    //             return true; // Пропускаем поврежденный чанк MP3
+    //             }
+    //         } else if (decoderTypeRef.current === 'aac' && decoderRef.current?.aac) {
+    //             decoded = await decoderRef.current.aac.decode(value);
+
+    //             const hasData = !!(decoded?.channelData?.[0]?.length); 
+    //             console.log(`[AAC] in=${value.length} out=${hasData ? decoded.channelData[0].length : 0} sr=${decoded?.sampleRate ?? '-'}`);
+    //             if (!hasData) return true;
+
+    //             // === Если декодер вернул пустоту ===
+    //             //if (!decoded || !decoded.channelData || decoded.channelData.length === 0 || decoded.channelData[0].length === 0) {
+    //                 // console.warn('Декодер вернул пустой результат. Пересоздаем инстанс AAC...');
+                    
+    //                 // // Безопасно очищаем старый инстанс
+    //                 // try {
+    //                 //     if (typeof decoderRef.current.aac.destroy === 'function') {
+    //                 //         decoderRef.current.aac.destroy();
+    //                 //     } else if (typeof decoderRef.current.aac.free === 'function') {
+    //                 //         decoderRef.current.aac.free();
+    //                 //     }
+    //                 // } catch { /* empty */ }
+
+    //                 // // Создаем новый чистый декодер, который адаптируется под изменившиеся каналы
+    //                 // decoderRef.current.aac = await createAACDecoder();
+                    
+    //                 // // Повторно декодируем этот же чанк данных
+    //                 // decoded = await decoderRef.current.aac.decode(value);
+
+    //                 // // Если даже новый декодер не справился, пропускаем чанк во избежание зависания
+    //                 // if (!decoded || !decoded.channelData || decoded.channelData.length === 0) {
+    //                 //     return true; 
+    //                 // }
+    //             //}
+    //         } else {
+    //             return false;
+    //         }
+
+    //         if (decoded && decoded.channelData && decoded.channelData.length > 0) {
+    //             const sampleRate = decoded.sampleRate;
+    //             let leftData, rightData;
+                
+    //             // Нормализация Mono потока в Stereo, чтобы Web Audio API работал стабильно
+    //             if (Array.isArray(decoded.channelData)) {
+    //                 leftData = decoded.channelData[0];
+    //                 rightData = decoded.channelData.length > 1 ? decoded.channelData[1] : decoded.channelData[0];
+    //             } else {
+    //                 leftData = decoded.channelData;
+    //                 rightData = decoded.channelData;
+    //             }
+
+    //             const samplesCount = leftData.length;
+    //             if (samplesCount === 0) return false;
+                
+    //             const duration = samplesCount / sampleRate;
+    //             audioQueueRef.current.push({ leftData, rightData, samplesCount, sampleRate, duration });
+    //         }
+    //         return true;
+    //     } catch (decodeError) {
+    //         console.warn('Ошибка в decodeAndEnqueue:', decodeError);
+    //         return false;
+    //     }
+    // };
 
     // === Consumer ===
     const runConsumer = () => {
@@ -636,21 +726,21 @@ const RadioPlayer = ({ streamUrl }) => {
     // Плавное переключение радиостанций
     useEffect(() => {
         let active = true;
-        
+        let timer = null;
+
+        if (streamUrlRef.current !== streamUrl) setMetadata({});
+        streamUrlRef.current = streamUrl;
+
         if (isPlayingRef.current) {
             stopPlaybackWithFade().then(() => {
                 if (!active) return;
-                
-                const timer = setTimeout(() => {
-                    startPlayback();
-                }, 50);
-                
-                return () => clearTimeout(timer);
+                timer = setTimeout(startPlayback, 50);
             });
         }
-        
+
         return () => {
             active = false;
+            if (timer) clearTimeout(timer);
         };
     }, [streamUrl]);
 

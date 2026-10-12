@@ -4,13 +4,14 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 import { SERVER_ORIGIN } from '../const';
 
-import { FlacSvg, OnAirSvg, ArrowToLeftSvg, OnAirQuarterSvg, MobileCheckSvg, LocationSvg, TgSvg, PlaySvg } from "../components/Svg";
+import { FlawSvg, OnAirSvg, ArrowToLeftSvg, OnAirQuarterSvg, MobileCheckSvg, LocationSvg, TgSvg, PlaySvg } from "../components/Svg";
 import QRCodeStyling from "qr-code-styling";
 
 import { useStreams, useGetStreamStatus } from '../features/StreamsSlice';
 import { useCurrentStream } from "../features/PlayerSlice";
 
 import FadeIn from '../components/FadeIn';
+import Modal from '../components/Modal';
 
 import '../styles/info.scss';
 import styles from '../styles/theme.module.scss';
@@ -74,6 +75,7 @@ const Info = () => {
     const navigate = useNavigate();
     const [tab, setTab] = useState('stream');
     const [streamInfo, setStreamInfo] = useState(null);
+    const [flawInfoVisible, setFlawInfoVisible] = useState(false);
 
     const refStreamQr = useRef(null);
     const refAppQr = useRef(null);
@@ -199,11 +201,11 @@ const Info = () => {
                 <div className='extra'>
                     {streamInfo && streamInfo.track && <div className='tile track'>
                         <span>NOW PLAYING:</span>
-                        <span>{`"${streamInfo.track}" by ${streamInfo.artist}`}{streamInfo && streamInfo.fromFlac && <FlacSvg />}</span>
+                        <span>{`"${streamInfo.track}" by ${streamInfo.artist}`}{streamInfo && !streamInfo.fromFlac && <FlawSvg onClick={() => setFlawInfoVisible(true)} />}</span>
                     </div>}
                     {streamInfo && streamInfo.nextTrack && <div className='tile track'>
                         <span>NEXT UP:</span>
-                        <span>{`"${streamInfo.nextTrack}" by ${streamInfo.nextArtist}`}{streamInfo && streamInfo.nextFromFlac && <FlacSvg />}</span>
+                        <span>{`"${streamInfo.nextTrack}" by ${streamInfo.nextArtist}`}{streamInfo && !streamInfo.nextFromFlac && <FlawSvg onClick={() => setFlawInfoVisible(true)} />}</span>
                     </div>}
                     {streamInfo && streamInfo.totalTracks > 0 && <div className='tile track'>
                         <span>PLAYLIST:</span>
@@ -220,6 +222,9 @@ const Info = () => {
                 </div>
             </div>}
         </div>
+        <Modal visible={flawInfoVisible} onClose={() => setFlawInfoVisible(false)}>
+            <p>Heads up: this track — and every other track marked with <FlawSvg /> icon — was prepared from a lossy source file. The majority of our stream, however, comes directly from true FLAC.</p>
+        </Modal>
     </FadeIn>);
 };
 

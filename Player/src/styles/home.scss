@@ -13,11 +13,9 @@
         .marquee-container {
             font-size: 30px;
             font-weight: 600;
-            cursor: pointer;
         }
 
         .no-wrap {
-            cursor: pointer;
             &__inner {
                 span {
                     font-size: 20px;
@@ -25,6 +23,7 @@
                 svg {
                     width: 30px;
                     height: 30px;
+                    cursor: pointer;
                 }
             }
         }
@@ -67,6 +66,7 @@
                 width: 0.7em;
                 height: 0.7em;
                 transform: translate(7px, 0px);
+                cursor:pointer;
             }
 
             .buffering {

@@ -4,11 +4,12 @@ import { useNavigate } from 'react-router';
 import { useStreams } from '../features/StreamsSlice';
 import { useCurrentStream, useSetCurrentStream, useIsBuffering, useTogglePlay, useMetadata } from "../features/PlayerSlice";
 
-import { ListSvg, EqualizerSvg, FlacSvg, InfoSvg } from '../components/Svg';
+import { ListSvg, EqualizerSvg, FlawSvg, InfoSvg } from '../components/Svg';
 import MainButton from '../components/MainButton';
 import FadeIn from '../components/FadeIn';
 import ShiftButton from '../components/ShiftButton';
 import MarqueeText from '../components/MarqueeText';
+import Modal from '../components/Modal';
 
 import '../styles/home.scss'
 import NoWrap from '../components/NoWrap';
@@ -24,6 +25,7 @@ const Home = () => {
     const metadata = useMetadata();
 
     const [currentStreamInfo, setCurrentStreamInfo] = useState(null);
+    const [flawInfoVisible, setFlawInfoVisible] = useState(false);
 
     useEffect(() => {setTimeout(() => setCurrentStreamInfo(streams.items.find(s => s.id === currentStream)), 1)}, [currentStream]);
 
@@ -52,14 +54,14 @@ const Home = () => {
                 <ShiftButton title="Next stream" onClick={() => setNextStream(true)}></ShiftButton>
             </div>
             <div className="header-panel">
-                <MarqueeText onClick={() => navigate(`/info`)}>{currentStreamInfo ? currentStreamInfo.title : ''}</MarqueeText>
-                <NoWrap onClick={() => navigate(`/info`)}>
+                <MarqueeText>{currentStreamInfo ? currentStreamInfo.title : ''}</MarqueeText>
+                <NoWrap>
                     <span>{currentStreamInfo ? currentStreamInfo.country : ''}</span>
-                    <InfoSvg />
+                    <InfoSvg onClick={() => navigate(`/info`)} />
                 </NoWrap>
             </div>
             <div className="footer-panel">
-                <MarqueeText>{isBuffering ? '' : <>{metadata ? metadata.track : ''}{metadata && metadata.fromFlac && <FlacSvg />}</>}</MarqueeText>
+                <MarqueeText>{isBuffering ? '' : <>{metadata ? metadata.track : ''}{metadata && metadata.fromFlac === false && <FlawSvg onClick={() => setFlawInfoVisible(true)} />}</>}</MarqueeText>
                 <MarqueeText>{isBuffering ? <span className='buffering'></span> : <>{metadata ? metadata.artist : ''}</>}</MarqueeText>
                 <MarqueeText>{isBuffering ? '' : <>{metadata && metadata.next && <><u>Next up</u>:&nbsp;{metadata.next}</>}</>}</MarqueeText>
             </div>
@@ -70,6 +72,9 @@ const Home = () => {
         <div className='svg-button eqalizer-button' title="Equalizer" onClick={() => navigate(`/eq`)}>
             <EqualizerSvg />
         </div>
+        <Modal visible={flawInfoVisible} onClose={() => setFlawInfoVisible(false)}>
+            <p>Heads up: this track — and every other track marked with <FlawSvg /> icon — was prepared from a lossy source file. The majority of our stream, however, comes directly from true FLAC.</p>
+        </Modal>
     </FadeIn>);
 };
 
