@@ -73,7 +73,7 @@ const Home = () => {
             <EqualizerSvg />
         </div>
         <Modal visible={flawInfoVisible} onClose={() => setFlawInfoVisible(false)}>
-            <p>Heads up: this track — and every other track marked with <FlawSvg /> icon — was prepared from a lossy source file. The majority of our stream, however, comes directly from true FLAC.</p>
+            <p>Heads up: this track — and every other track on stream o0o0.online marked with <FlawSvg /> icon — was prepared from a lossy source file. The majority of our stream, however, comes directly from true FLAC.</p>
         </Modal>
     </FadeIn>);
 };

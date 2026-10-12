@@ -359,7 +359,7 @@ const RadioPlayer = ({ streamUrl }) => {
                                 ///////////////////
                                 const fromFlac = metadataParts.find(s => s.startsWith("FromFlac='"));
                                 if (!fromFlac) {
-                                    streamInfoRef.current.fromFlac = false;
+                                    streamInfoRef.current.fromFlac = undefined;
                                 } else {
                                     const start = fromFlac.indexOf("'") + 1;
                                     const end = fromFlac.lastIndexOf("'");
