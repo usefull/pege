@@ -14,6 +14,7 @@ const CONSUMER_TICK_MS = 50;
 const INITIAL_RECONNECT_DELAY = 1000;
 const MAX_RECONNECT_DELAY = 16000;
 const FADE_DURATION = 0.4;
+const MAX_QUEUE_DURATION = 30;
 
 const extractAdtsFrames = (buf) => {
     const frames = [];
@@ -231,6 +232,8 @@ const RadioPlayer = ({ streamUrl }) => {
                     'Icy-MetaData': '1'
                 }
             });
+
+            if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`);
         
             if (!response.body) throw new Error('Empty stream body');
             
@@ -284,6 +287,13 @@ const RadioPlayer = ({ streamUrl }) => {
                     while (bufferPos < bytesRead) {
                         if (metadataLeft > 0) {
                             // нужно читать метаданные
+                            // если метаданные потеряны - сбрасываем состояние
+                            if (!metadataRef.current) {
+                                metadataLeft = 0;
+                                metadataLength = 0;
+                                bytesAfterMetadata = 0;
+                                continue;
+                            }
                             if (metadataLeft <= bytesRead - bufferPos) {
                                 // метаданные заканчиваются в текущем батче
                                 metadataRef.current.set(
@@ -475,43 +485,64 @@ const RadioPlayer = ({ streamUrl }) => {
             duration: samplesCount / sampleRate,
         });
 
+        // Ограничиваем суммарную длительность очереди.
+        // Дропаем самые старые чанки, сохраняя самые свежие.
+        let totalDuration = 0;
+        let cutIndex = -1;
+
+        for (let i = audioQueueRef.current.length - 1; i >= 0; i--) {
+            totalDuration += audioQueueRef.current[i].duration;
+            if (totalDuration > MAX_QUEUE_DURATION) {
+                cutIndex = i;
+                break;
+            }
+        }
+
+        if (cutIndex > 0) {
+            audioQueueRef.current.splice(0, cutIndex);
+            console.warn(
+                `Очередь превысила ${MAX_QUEUE_DURATION}s — дропнуто ${cutIndex} старых чанков`
+            );
+        }
+
         return true;
     };
 
-const decodeAndEnqueue = async (value) => {
-    try {
-        if (decoderTypeRef.current === 'mp3' && decoderRef.current?.mp3) {
-            const decoded = decoderRef.current.mp3.decode(value);
-            if (!decoded || decoded.samplesDecoded === 0 || !decoded.channelData) {
-                return true; // повреждённый чанк MP3 — пропускаем
+    const decodeAndEnqueue = async (value) => {
+        try {
+            if (decoderTypeRef.current === 'mp3' && decoderRef.current?.mp3) {
+                const decoded = decoderRef.current.mp3.decode(value);
+                if (!decoded || decoded.samplesDecoded === 0 || !decoded.channelData) {
+                    return true; // повреждённый чанк MP3 — пропускаем
+                }
+                enqueueDecoded(decoded);
+                return true;
             }
-            enqueueDecoded(decoded);
-            return true;
-        }
 
-        if (decoderTypeRef.current === 'aac' && decoderRef.current?.aac) {
-            const merged = new Uint8Array(aacByteBufferRef.current.length + value.length);
-            merged.set(aacByteBufferRef.current, 0);
-            merged.set(value, aacByteBufferRef.current.length);
+            if (decoderTypeRef.current === 'aac' && decoderRef.current?.aac) {
+                const merged = new Uint8Array(aacByteBufferRef.current.length + value.length);
+                merged.set(aacByteBufferRef.current, 0);
+                merged.set(value, aacByteBufferRef.current.length);
 
-            const { frames, remaining } = extractAdtsFrames(merged);
-            aacByteBufferRef.current = remaining;
+                const { frames, remaining } = extractAdtsFrames(merged);
+                aacByteBufferRef.current = remaining;
 
-            for (const frame of frames) {
-                const decodedFrame = await decoderRef.current.aac.decode(frame);
-                const hasData = !!(decodedFrame?.channelData?.[0]?.length);
-                if (!hasData) continue;
-                enqueueDecoded(decodedFrame);
+                for (const frame of frames) {
+                    const decodedFrame = await decoderRef.current.aac.decode(frame);
+                    const hasData = !!(decodedFrame?.channelData?.[0]?.length);
+                    if (!hasData) continue;
+                    enqueueDecoded(decodedFrame);
+                }
+                return true;
             }
-            return true;
-        }
 
-        return false;
-    } catch (decodeError) {
-        console.warn('Ошибка в decodeAndEnqueue:', decodeError);
-        return false;
-    }
-};
+            return false;
+        } catch (decodeError) {
+            console.warn('Ошибка в decodeAndEnqueue:', decodeError);
+            aacByteBufferRef.current = new Uint8Array(0);
+            return false;
+        }
+    };
 
     //     try {
     //         let decoded = null;
@@ -675,22 +706,45 @@ const decodeAndEnqueue = async (value) => {
         const context = new AudioContextClass();
         audioContextRef.current = context;
 
-        // ПАРАЛЛЕЛЬНАЯ ИНИЦИАЛИЗАЦИЯ
+        // ПАРАЛЛЕЛЬНАЯ ИНИЦИАЛИЗАЦИЯ С ОБРАБОТКОЙ ОШИБОК
         const mp3Decoder = new MPEGDecoder();
-        
-        // Запускаем подготовку MP3 и создание AAC декодера параллельно
-        const [, aacDecoderInstance] = await Promise.all([
-            mp3Decoder.ready,
-            createAACDecoder()
-        ]);
-        
-        // Сохраняем ссылки на оба готовых инстанса в реф
+
+        const mp3Ready = mp3Decoder.ready
+            .then(() => mp3Decoder)
+            .catch((err) => {
+                console.warn('MP3 decoder init failed:', err);
+                return null;
+            });
+
+        const aacReady = createAACDecoder().catch((err) => {
+            console.warn('AAC decoder init failed:', err);
+            return null;
+        });
+
+        const [mp3Instance, aacInstance] = await Promise.all([mp3Ready, aacReady]);
+
+        // Если ни один декодер не поднялся — дальше идти некуда
+        if (!mp3Instance && !aacInstance) {
+            console.error('Оба декодера не инициализировались — воспроизведение невозможно');
+
+            isPlayingRef.current = false;
+            setIsPlaying(false);
+            setIsBuffering(false);
+            isBufferingRef.current = false;
+
+            if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+                audioContextRef.current.close().catch(() => {});
+                audioContextRef.current = null;
+            }
+            return;
+        }
+
         decoderRef.current = {
-            mp3: mp3Decoder,
-            aac: aacDecoderInstance
+            mp3: mp3Instance || null,
+            aac: aacInstance || null
         };
-        
-        decoderTypeRef.current = null; 
+
+        decoderTypeRef.current = null;
 
         audioChainRef.current = new AudioChain(
             context, 
