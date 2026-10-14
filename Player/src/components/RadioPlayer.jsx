@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { MPEGDecoder } from 'mpg123-decoder';
 import { decoder as createAACDecoder } from '@audio/decode-aac';
 import AudioChain from './AudioChain';
+import { IcyParser } from './IcyParser';
 
 import { useSetIsPlaying, useSetIsBuffering, useTogglePlayRequestId, useSetMetadata } from '../features/PlayerSlice';
 import { useEqGrains, useEqOn } from '../features/EqualizerSlice';
@@ -79,6 +80,8 @@ const RadioPlayer = ({ streamUrl }) => {
 
     const metadataRef = useRef(null);
     const streamInfoRef = useRef({});
+
+    const icyParserRef = useRef(null);
 
     useEffect(() => {
         equalizerOnRef.current = eqOn;
@@ -221,7 +224,6 @@ const RadioPlayer = ({ streamUrl }) => {
         if (!isPlayingRef.current) return;
         const currentUrl = streamUrlRef.current;
         abortControllerRef.current = new AbortController();
-        aacByteBufferRef.current = new Uint8Array(0);
 
         try {
             const response = await fetch(currentUrl, {
@@ -252,6 +254,12 @@ const RadioPlayer = ({ streamUrl }) => {
             let metaInterval = parseInt(response.headers.get('icy-metaint') || '', 10);
             metaInterval = isNaN(metaInterval) ? 0 : metaInterval;
 
+            if (icyParserRef.current) {
+                icyParserRef.current.reset(metaInterval);
+            } else {
+                icyParserRef.current = new IcyParser(metaInterval);
+            }
+
             const icyNameHeader = response.headers.get('icy-name') || '';
             const parts = decodeURIComponent(icyNameHeader).split('|||');
             streamInfoRef.current = { ... streamInfoRef.current,
@@ -262,189 +270,28 @@ const RadioPlayer = ({ streamUrl }) => {
 
             const reader = response.body.getReader();
 
-            let metadataLeft = 0;
-            let metadataLength = 0;
-            let bytesAfterMetadata = 0;
-
             while (isPlayingRef.current) {
                 const { done, value } = await reader.read();
                 if (done) break;
-                
-                const bytesRead = value.length;
 
-                // Если тип сбросился при ошибке, пытаемся определить по сигнатуре первых байт чанка
-                if (!decoderTypeRef.current && value && value.length > 1) {
-                    // 0xFFF или 0xFFF9 — сигнатура ADTS фрейма AAC. 0xFFFB — MP3 фрейм.
-                    if (value[0] === 0xFF && (value[1] & 0xF0) === 0xF0) {
-                        decoderTypeRef.current = (value[1] & 0x06) === 0x00 ? 'aac' : 'mp3';
-                    } else {
-                        decoderTypeRef.current = 'mp3'; // По умолчанию
-                    }
-                }
+                const events = icyParserRef.current.feed(value);
 
-                if (metaInterval > 0) {
-                    let bufferPos = 0;
-                    while (bufferPos < bytesRead) {
-                        if (metadataLeft > 0) {
-                            // нужно читать метаданные
-                            // если метаданные потеряны - сбрасываем состояние
-                            if (!metadataRef.current) {
-                                metadataLeft = 0;
-                                metadataLength = 0;
-                                bytesAfterMetadata = 0;
-                                continue;
-                            }
-                            if (metadataLeft <= bytesRead - bufferPos) {
-                                // метаданные заканчиваются в текущем батче
-                                metadataRef.current.set(
-                                    value.subarray(bufferPos, bufferPos + metadataLeft),
-                                    metadataLength - metadataLeft
-                                );
-                                bufferPos += metadataLeft;
-                                metadataLeft = 0;
-
-                                const strMetadata = new TextDecoder().decode(metadataRef.current);
-                                const metadataParts = strMetadata.split(';');
-                                const streamTitle = metadataParts.find(s => s.startsWith("StreamTitle='"));
-                                streamInfoRef.current = { ... streamInfoRef.current };
-                                if (!streamTitle) {
-                                    streamInfoRef.current.track = null;
-                                    streamInfoRef.current.artist = null;
-                                } else {
-                                    const start = streamTitle.indexOf("'") + 1;
-                                    const end = streamTitle.lastIndexOf("'");
-
-                                    if (start < 1 || end < 0) {
-                                        streamInfoRef.current.track = null;
-                                        streamInfoRef.current.artist = null;
-                                    } else {
-                                        const parts = streamTitle
-                                            .substring(start, end)
-                                            .split(' - ')
-                                            .map(s => s.trim());
-                                        
-                                        if (parts.length > 0) {
-                                            streamInfoRef.current.artist = parts[0];
-                                        }
-                                        
-                                        if (parts.length > 1) {
-                                            streamInfoRef.current.track = parts[1];
-                                        }
-                                    }
-                                }
-                                ///////////////////
-                                const streamNext = metadataParts.find(s => s.startsWith("NextTrack='"));
-                                streamInfoRef.current = { ... streamInfoRef.current };
-                                if (!streamNext) {
-                                    streamInfoRef.current.next = null;
-                                } else {
-                                    const start = streamNext.indexOf("'") + 1;
-                                    const end = streamNext.lastIndexOf("'");
-
-                                    if (start < 1 || end < 0) {
-                                        streamInfoRef.current.next = null;
-                                    } else {
-                                        const parts = streamNext
-                                            .substring(start, end)
-                                            .split(' - ')
-                                            .map(s => s.trim());
-                                        
-                                        let a = null;
-                                        let t = null;
-                                        if (parts.length > 0) {
-                                            a = parts[0];
-                                        }
-                                        
-                                        if (parts.length > 1) {
-                                            t = parts[1];
-                                        }
-
-                                        if (t && t.length > 0) {
-                                            streamInfoRef.current.next = `"${t}"${(a && a.length > 0) ? ` by ${a}` : ''}`;
-                                        } else {
-                                            streamInfoRef.current.next = null;
-                                        }
-                                    }
-                                }
-                                ///////////////////
-                                const fromFlac = metadataParts.find(s => s.startsWith("FromFlac='"));
-                                if (!fromFlac) {
-                                    streamInfoRef.current.fromFlac = undefined;
-                                } else {
-                                    const start = fromFlac.indexOf("'") + 1;
-                                    const end = fromFlac.lastIndexOf("'");
-
-                                    if (start < 1 || end < 0) {
-                                        streamInfoRef.current.fromFlac = false;
-                                    } else if (fromFlac.substring(start, end) === "1") {
-                                        streamInfoRef.current.fromFlac = true;
-                                    } else {
-                                        streamInfoRef.current.fromFlac = false;
-                                    }
-                                }
-                                setMetadata(streamInfoRef.current);
-                                // if (onStreamInfoUpdate) {
-                                //     onStreamInfoUpdate(streamInfoRef.current);
-                                // }
-                                
-                                console.log('Метаданные: ' + strMetadata + ' ||| длина: ' + metadataLength);
-                                metadataRef.current = null;
-                            } else {
-                                // метаданные переходят на следующий батч
-                                metadataRef.current.set(
-                                    value.subarray(bufferPos, bufferPos + (bytesRead - bufferPos)),
-                                    metadataLength - metadataLeft
-                                );                                
-                                metadataLeft -= bytesRead - bufferPos;
-                                bufferPos += bytesRead - bufferPos;
-                            }
-                        } else {
-                            // мотаем дальше
-                            if (metaInterval - bytesAfterMetadata < bytesRead - bufferPos) {
-                                // метаданные есть в оставшемся батче
-                                if (metaInterval - bytesAfterMetadata > 0) {
-                                    // есть аудиоданные в начале текущего батча
-                                    ///////////////////////////////////////////
-                                    /// ОТПРАВКА АУДИТОДАННЫХ
-                                    const buff = new Uint8Array(new ArrayBuffer(metaInterval - bytesAfterMetadata));
-                                    buff.set(
-                                        value.subarray(bufferPos, bufferPos + (metaInterval - bytesAfterMetadata)),
-                                        0
-                                    );
-                                    if (!await decodeAndEnqueue(buff)) continue;
-                                    ///////////////////////////////////////////
-                                }
-
-                                bufferPos += metaInterval - bytesAfterMetadata;
-                                metadataLength = value[bufferPos] * 16;
-                                bufferPos += 1;
-                                if (metadataLength == 0) {
-                                    bytesAfterMetadata = 0;
-                                }
-                                else
-                                {
-                                    metadataRef.current = new Uint8Array(new ArrayBuffer(metadataLength));
-                                    metadataLeft = metadataLength;
-                                    bytesAfterMetadata = 0;
-                                }
-                            } else {
-                                // метаданных в оставшемся батче нет
-                                ///////////////////////////////////////////
-                                /// ОТПРАВКА АУДИТОДАННЫХ
-                                const buff = new Uint8Array(new ArrayBuffer(bytesRead - bufferPos));
-                                buff.set(
-                                    value.subarray(bufferPos, bufferPos + (bytesRead - bufferPos)),
-                                    0
-                                );
-                                if (!await decodeAndEnqueue(buff)) continue;
-                                ///////////////////////////////////////////
-                                bytesAfterMetadata += bytesRead - bufferPos;
-                                bufferPos += bytesRead - bufferPos;
-                            }
+                for (const event of events) {
+                    if (event.type === 'audio') {
+                        const audioChunk = icyParserRef.current.takeAudio();
+                        if (audioChunk && !(await decodeAndEnqueue(audioChunk))) {
+                            continue;
                         }
                     }
-                } else {
-                    if (!await decodeAndEnqueue(value)) continue;
+                    
+                    if (event.type === 'metadata') {
+                        streamInfoRef.current = { ...streamInfoRef.current, ...event.payload };
+                        setMetadata(streamInfoRef.current);
+                    }
+                }
+                const pendingAudio = icyParserRef.current.takeAudio();
+                if (pendingAudio && !(await decodeAndEnqueue(pendingAudio))) {
+                    continue;
                 }
             }
         } catch (error) {
@@ -543,75 +390,6 @@ const RadioPlayer = ({ streamUrl }) => {
             return false;
         }
     };
-
-    //     try {
-    //         let decoded = null;
-            
-    //         if (decoderTypeRef.current === 'mp3' && decoderRef.current?.mp3) {
-    //             decoded = decoderRef.current.mp3.decode(value);
-    //             if (!decoded || decoded.samplesDecoded === 0 || !decoded.channelData) {
-    //             return true; // Пропускаем поврежденный чанк MP3
-    //             }
-    //         } else if (decoderTypeRef.current === 'aac' && decoderRef.current?.aac) {
-    //             decoded = await decoderRef.current.aac.decode(value);
-
-    //             const hasData = !!(decoded?.channelData?.[0]?.length); 
-    //             console.log(`[AAC] in=${value.length} out=${hasData ? decoded.channelData[0].length : 0} sr=${decoded?.sampleRate ?? '-'}`);
-    //             if (!hasData) return true;
-
-    //             // === Если декодер вернул пустоту ===
-    //             //if (!decoded || !decoded.channelData || decoded.channelData.length === 0 || decoded.channelData[0].length === 0) {
-    //                 // console.warn('Декодер вернул пустой результат. Пересоздаем инстанс AAC...');
-                    
-    //                 // // Безопасно очищаем старый инстанс
-    //                 // try {
-    //                 //     if (typeof decoderRef.current.aac.destroy === 'function') {
-    //                 //         decoderRef.current.aac.destroy();
-    //                 //     } else if (typeof decoderRef.current.aac.free === 'function') {
-    //                 //         decoderRef.current.aac.free();
-    //                 //     }
-    //                 // } catch { /* empty */ }
-
-    //                 // // Создаем новый чистый декодер, который адаптируется под изменившиеся каналы
-    //                 // decoderRef.current.aac = await createAACDecoder();
-                    
-    //                 // // Повторно декодируем этот же чанк данных
-    //                 // decoded = await decoderRef.current.aac.decode(value);
-
-    //                 // // Если даже новый декодер не справился, пропускаем чанк во избежание зависания
-    //                 // if (!decoded || !decoded.channelData || decoded.channelData.length === 0) {
-    //                 //     return true; 
-    //                 // }
-    //             //}
-    //         } else {
-    //             return false;
-    //         }
-
-    //         if (decoded && decoded.channelData && decoded.channelData.length > 0) {
-    //             const sampleRate = decoded.sampleRate;
-    //             let leftData, rightData;
-                
-    //             // Нормализация Mono потока в Stereo, чтобы Web Audio API работал стабильно
-    //             if (Array.isArray(decoded.channelData)) {
-    //                 leftData = decoded.channelData[0];
-    //                 rightData = decoded.channelData.length > 1 ? decoded.channelData[1] : decoded.channelData[0];
-    //             } else {
-    //                 leftData = decoded.channelData;
-    //                 rightData = decoded.channelData;
-    //             }
-
-    //             const samplesCount = leftData.length;
-    //             if (samplesCount === 0) return false;
-                
-    //             const duration = samplesCount / sampleRate;
-    //             audioQueueRef.current.push({ leftData, rightData, samplesCount, sampleRate, duration });
-    //         }
-    //         return true;
-    //     } catch (decodeError) {
-    //         console.warn('Ошибка в decodeAndEnqueue:', decodeError);
-    //         return false;
-    //     }
-    // };
 
     // === Consumer ===
     const runConsumer = () => {
