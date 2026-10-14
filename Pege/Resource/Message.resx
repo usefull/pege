@@ -135,4 +135,7 @@
   <data name="RetransmittingStopped" xml:space="preserve">
     <value>Retransmitting stopped by server administrator.</value>
   </data>
+  <data name="ToTelegramBroadcastingStopped" xml:space="preserve">
+    <value>The broadcast is temporarily suspended due to technical work. Everything will be restored very soon. Thank you for your patience.</value>
+  </data>
 </root>

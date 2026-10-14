@@ -113,5 +113,14 @@ namespace Pege.Resource {
                 return ResourceManager.GetString("RetransmittingStopped", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Ищет локализованную строку, похожую на The broadcast is temporarily suspended due to technical work. Everything will be restored very soon. Thank you for your patience..
+        /// </summary>
+        internal static string ToTelegramBroadcastingStopped {
+            get {
+                return ResourceManager.GetString("ToTelegramBroadcastingStopped", resourceCulture);
+            }
+        }
     }
 }

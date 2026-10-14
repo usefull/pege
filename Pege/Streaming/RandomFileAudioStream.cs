@@ -209,7 +209,7 @@ namespace Pege.Streaming
                 {
                     _log.Information(Message.BroadcastingStopped);
                     _ = _serviceProvider.GetService<TelegramService>()?.SendMessageAsync(
-                        "The broadcast is temporarily suspended due to technical work. Everything will be restored very soon. Thank you for your patience.",
+                        Message.ToTelegramBroadcastingStopped,
                         Status.TelegramChannelId!);
                 }
             }
@@ -487,7 +487,7 @@ by <b>{CastedStatus.NextArtist}</b>", Status.TelegramChannelId!);
             var tgService = _serviceProvider.GetService<TelegramService>();
             if (list.Count == 0 || tgService == null) return;
 
-            var message = new StringBuilder($"{(list.Count == 1 ? "New track" : $"{list.Count} new tracks")} has been uploaded to the playlist:");
+            var message = new StringBuilder($"{(list.Count == 1 ? "New track" : $"{list.Count} new tracks")} {(list.Count == 1 ? "has" : "have")} been uploaded to the playlist:");
             message.AppendLine(string.Empty);
             message.AppendLine(string.Empty);
 
