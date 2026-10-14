@@ -126,7 +126,7 @@ ENV_EOF
     # Остановка и удаление старого контейнера, если он существует
     if [ $(docker ps -a -q -f name=^/${CONTAINER_NAME}$) ]; then
         echo "Остановка и удаление старого контейнера..."
-        curl -X PUT "http://${VPS_IP}:8080/api/stream/stop"
+        curl -X PUT -H "${PASSKEY}: ${PASSWORD}" "http://${VPS_IP}:8080/api/stream/stop"
         sleep 5
         docker stop ${CONTAINER_NAME}
         docker rm ${CONTAINER_NAME}
