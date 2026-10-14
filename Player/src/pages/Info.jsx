@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 import { SERVER_ORIGIN } from '../const';
 
-import { FlawSvg, OnAirSvg, ArrowToLeftSvg, OnAirQuarterSvg, MobileCheckSvg, LocationSvg, TgSvg, PlaySvg } from "../components/Svg";
+import { LossySvg, OnAirSvg, ArrowToLeftSvg, OnAirQuarterSvg, MobileCheckSvg, LocationSvg, TgSvg, PlaySvg } from "../components/Svg";
 import QRCodeStyling from "qr-code-styling";
 
 import { useStreams, useGetStreamStatus } from '../features/StreamsSlice';
@@ -201,11 +201,11 @@ const Info = () => {
                 <div className='extra'>
                     {streamInfo && streamInfo.track && <div className='tile track'>
                         <span>NOW PLAYING:</span>
-                        <span>{`"${streamInfo.track}" by ${streamInfo.artist}`}{streamInfo && streamInfo.fromFlac === false && <FlawSvg onClick={() => setFlawInfoVisible(true)} />}</span>
+                        <span>{`"${streamInfo.track}" by ${streamInfo.artist}`}{streamInfo && streamInfo.fromFlac === false && <LossySvg onClick={() => setFlawInfoVisible(true)} />}</span>
                     </div>}
                     {streamInfo && streamInfo.nextTrack && <div className='tile track'>
                         <span>NEXT UP:</span>
-                        <span>{`"${streamInfo.nextTrack}" by ${streamInfo.nextArtist}`}{streamInfo && streamInfo.nextFromFlac === false && <FlawSvg onClick={() => setFlawInfoVisible(true)} />}</span>
+                        <span>{`"${streamInfo.nextTrack}" by ${streamInfo.nextArtist}`}{streamInfo && streamInfo.nextFromFlac === false && <LossySvg onClick={() => setFlawInfoVisible(true)} />}</span>
                     </div>}
                     {streamInfo && streamInfo.totalTracks > 0 && <div className='tile track'>
                         <span>PLAYLIST:</span>
@@ -223,7 +223,7 @@ const Info = () => {
             </div>}
         </div>
         <Modal visible={flawInfoVisible} onClose={() => setFlawInfoVisible(false)}>
-            <p>Heads up: this track — and every other track on stream o0o0.online marked with <FlawSvg /> icon — was prepared from a lossy source file. The majority of our stream, however, comes directly from true FLAC.</p>
+            <p>Heads up: this track — and every other track on stream o0o0.online marked with <LossySvg /> icon — was prepared from a lossy source file. The majority of our stream, however, comes directly from a true FLAC.</p>
         </Modal>
     </FadeIn>);
 };

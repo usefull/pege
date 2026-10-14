@@ -1,6 +1,6 @@
-export const FlawSvg = ({ style, onClick }) => { return (
+export const LossySvg = ({ style, onClick }) => { return (
     <svg xmlns="http://www.w3.org/2000/svg" onClick={() => {if (onClick) onClick();}} className='flac-label' viewBox="0 0 19 19" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" background="transparent" style={style}>
-        <path d="M9.5 1A1 1 0 009.5 18 1 1 0 009.5 1M7 14V6H13M7 10H10"/>
+        <path d="M9.5 1A1 1 0 009.5 18 1 1 0 009.5 1M7 5V13H13"/>
     </svg>
 );};
 

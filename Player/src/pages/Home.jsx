@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router';
 import { useStreams } from '../features/StreamsSlice';
 import { useCurrentStream, useSetCurrentStream, useIsBuffering, useTogglePlay, useMetadata } from "../features/PlayerSlice";
 
-import { ListSvg, EqualizerSvg, FlawSvg, InfoSvg } from '../components/Svg';
+import { ListSvg, EqualizerSvg, LossySvg, InfoSvg } from '../components/Svg';
 import MainButton from '../components/MainButton';
 import FadeIn from '../components/FadeIn';
 import ShiftButton from '../components/ShiftButton';
@@ -61,7 +61,7 @@ const Home = () => {
                 </NoWrap>
             </div>
             <div className="footer-panel">
-                <MarqueeText>{isBuffering ? '' : <>{metadata ? metadata.track : ''}{metadata && metadata.fromFlac === false && <FlawSvg onClick={() => setFlawInfoVisible(true)} />}</>}</MarqueeText>
+                <MarqueeText>{isBuffering ? '' : <>{metadata ? metadata.track : ''}{metadata && metadata.fromFlac === false && <LossySvg onClick={() => setFlawInfoVisible(true)} />}</>}</MarqueeText>
                 <MarqueeText>{isBuffering ? <span className='buffering'></span> : <>{metadata ? metadata.artist : ''}</>}</MarqueeText>
                 <MarqueeText>{isBuffering ? '' : <>{metadata && metadata.next && <><u>Next up</u>:&nbsp;{metadata.next}</>}</>}</MarqueeText>
             </div>
@@ -73,7 +73,7 @@ const Home = () => {
             <EqualizerSvg />
         </div>
         <Modal visible={flawInfoVisible} onClose={() => setFlawInfoVisible(false)}>
-            <p>Heads up: this track — and every other track on stream o0o0.online marked with <FlawSvg /> icon — was prepared from a lossy source file. The majority of our stream, however, comes directly from true FLAC.</p>
+            <p>Heads up: this track — and every other track on stream o0o0.online marked with <LossySvg /> icon — was prepared from a lossy source file. The majority of our stream, however, comes directly from a true FLAC.</p>
         </Modal>
     </FadeIn>);
 };
