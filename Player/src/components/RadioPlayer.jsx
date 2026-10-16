@@ -230,6 +230,7 @@ const RadioPlayer = ({ streamUrl }) => {
 
     // === Полная остановка ===
     const forceStopAll = () => {
+        isStoppingRef.current = false;
         isPlayingRef.current = false;
         setIsPlaying(false);
         isBufferingRef.current = true;
@@ -297,6 +298,11 @@ const RadioPlayer = ({ streamUrl }) => {
     const connectAndReadStream = async (currentDelay) => {
         if (!isPlayingRef.current) return;
         const currentUrl = streamUrlRef.current;
+
+        // Отменяем предыдущий контроллер, если он ещё висит
+        if (abortControllerRef.current) {
+            try { abortControllerRef.current.abort(); } catch { /* ignore */ }
+        }
         abortControllerRef.current = new AbortController();
 
         try {
@@ -331,7 +337,23 @@ const RadioPlayer = ({ streamUrl }) => {
 
             while (isPlayingRef.current) {
                 const { done, value } = await reader.read();
-                if (done) break;
+
+                if (done) {
+                    if (!isPlayingRef.current) return;
+
+                    // Сервер закрыл поток штатно. Уходим в буферизацию и реконнект.
+                    isBufferingRef.current = true;
+                    setIsBuffering(true);
+
+                    console.warn(`Stream ended by server. Reconnecting in ${currentDelay}ms...`);
+
+                    const nextDelay = Math.min(currentDelay * 2, MAX_RECONNECT_DELAY);
+                    reconnectTimeoutRef.current = setTimeout(
+                        () => connectAndReadStream(nextDelay),
+                        currentDelay
+                    );
+                    return;
+                }
 
                 const events = icyParserRef.current.feed(value);
 
