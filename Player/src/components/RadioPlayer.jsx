@@ -144,6 +144,7 @@ const RadioPlayer = ({ streamUrl }) => {
     const aacByteBufferRef = useRef(new Uint8Array(0));
     const isBufferingRef = useRef(true);
     const reconnectTimeoutRef = useRef(null);
+    const reconnectDelayRef = useRef(INITIAL_RECONNECT_DELAY);
     const consumerTimerRef = useRef(null);
 
     const wakeLockRef = useRef(null);
@@ -255,6 +256,10 @@ const RadioPlayer = ({ streamUrl }) => {
             reconnectTimeoutRef.current = null;
         }
 
+        if (reconnectDelayRef.current) {
+            reconnectDelayRef.current = INITIAL_RECONNECT_DELAY;
+        }
+
         if (consumerTimerRef.current) {
             clearTimeout(consumerTimerRef.current);
             consumerTimerRef.current = null;
@@ -295,7 +300,9 @@ const RadioPlayer = ({ streamUrl }) => {
         setIsBuffering(false);
     };
 
-    const connectAndReadStream = async (currentDelay) => {
+    const connectAndReadStream = async () => {
+        let currentDelay = reconnectDelayRef.current;
+
         if (!isPlayingRef.current) return;
         const currentUrl = streamUrlRef.current;
 
@@ -335,6 +342,8 @@ const RadioPlayer = ({ streamUrl }) => {
 
             const reader = response.body.getReader();
 
+            let gotFirstChunk = false;
+
             while (isPlayingRef.current) {
                 const { done, value } = await reader.read();
 
@@ -348,11 +357,21 @@ const RadioPlayer = ({ streamUrl }) => {
                     console.warn(`Stream ended by server. Reconnecting in ${currentDelay}ms...`);
 
                     const nextDelay = Math.min(currentDelay * 2, MAX_RECONNECT_DELAY);
+                    reconnectDelayRef.current = nextDelay;
                     reconnectTimeoutRef.current = setTimeout(
-                        () => connectAndReadStream(nextDelay),
+                        () => connectAndReadStream(),
                         currentDelay
                     );
                     return;
+                }
+
+                if (!gotFirstChunk) {
+                    gotFirstChunk = true;
+
+                    if (currentDelay !== INITIAL_RECONNECT_DELAY) {
+                        currentDelay = INITIAL_RECONNECT_DELAY;
+                        reconnectDelayRef.current = INITIAL_RECONNECT_DELAY;
+                    }
                 }
 
                 const events = icyParserRef.current.feed(value);
@@ -381,7 +400,8 @@ const RadioPlayer = ({ streamUrl }) => {
             if (abortControllerRef.current) abortControllerRef.current.abort();
 
             const nextDelay = Math.min(currentDelay * 2, MAX_RECONNECT_DELAY);
-            reconnectTimeoutRef.current = setTimeout(() => connectAndReadStream(nextDelay), currentDelay);
+            reconnectDelayRef.current = nextDelay;
+            reconnectTimeoutRef.current = setTimeout(() => connectAndReadStream(), currentDelay);
         }
         finally {
             metadataRef.current = null;
@@ -626,7 +646,8 @@ const RadioPlayer = ({ streamUrl }) => {
         setIsPlaying(true);
 
         runConsumer();
-        connectAndReadStream(INITIAL_RECONNECT_DELAY);
+        reconnectDelayRef.current = INITIAL_RECONNECT_DELAY;
+        connectAndReadStream();
     };
 
     useEffect(() => {
