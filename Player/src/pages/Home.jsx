@@ -45,6 +45,20 @@ const Home = () => {
         }
         setCurrentStream(streams.items[index].id);
     }
+
+    const formatNextTrackMetadata = (next) => {
+        let artist = null;
+        let track = null;
+        if (next) {
+            const parts = next.split(' - ').map(s => s.trim());
+            artist = parts[0] || null;
+            track = parts[1] || null;
+        }
+
+        track = track ? `"${track}"` : '<Unknown Track>';
+
+        return `${track}${artist ? ` by ${artist}` : ''}`;
+    }
     
     return (<FadeIn>
         <div className="home-container">
@@ -63,7 +77,7 @@ const Home = () => {
             <div className="footer-panel">
                 <MarqueeText>{isBuffering ? '' : <>{metadata ? metadata.track : ''}{metadata && metadata.fromFlac === false && <LossySvg onClick={() => setFlawInfoVisible(true)} />}</>}</MarqueeText>
                 <MarqueeText>{isBuffering ? <span className='buffering'></span> : <>{metadata ? metadata.artist : ''}</>}</MarqueeText>
-                <MarqueeText>{isBuffering ? '' : <>{metadata && metadata.next && <><u>Next up</u>:&nbsp;{metadata.next}</>}</>}</MarqueeText>
+                <MarqueeText>{isBuffering ? '' : <>{metadata && metadata.next && <><u>Next up</u>:&nbsp;{formatNextTrackMetadata(metadata.next)}</>}</>}</MarqueeText>
             </div>
         </div>
         <div className='svg-button list-button' title="Stream list" onClick={() => navigate(`/streams`)}>

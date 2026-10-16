@@ -17,6 +17,80 @@ const MAX_RECONNECT_DELAY = 16000;
 const FADE_DURATION = 0.4;
 const MAX_QUEUE_DURATION = 30;
 
+const ADTS_SAMPLE_RATES = [
+    96000, 88200, 64000, 48000, 44100, 32000,
+    24000, 22050, 16000, 12000, 11025, 8000, 7350
+];
+
+const STREAM_FETCH_HEADERS = {
+    'Accept': 'audio/mpeg, audio/aac, audio/x-aac, audio/aacp',
+    'Icy-MetaData': '1',
+};
+
+const detectStreamType = (response, url) => {
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('aac') || contentType.includes('audio/aacp')) return 'aac';
+    if (contentType.includes('mpeg') || contentType.includes('mp3')) return 'mp3';
+    const lower = url.toLowerCase();
+    return (lower.includes('aac') || lower.includes('aacp')) ? 'aac' : 'mp3';
+};
+
+const probeAacSampleRate = (buf) => {
+    for (let i = 0; i + 7 <= buf.length; i++) {
+        if (buf[i] !== 0xFF) continue;
+        if ((buf[i + 1] & 0xF0) !== 0xF0) continue;
+
+        // layer = биты 2-1 байта 1. У ADTS всегда 00, у MP3 — не 00.
+        const layer = (buf[i + 1] >> 1) & 0x03;
+        if (layer !== 0) continue;
+
+        const freqIndex = (buf[i + 2] >> 2) & 0x0F;
+        if (freqIndex > 12) continue;
+
+        const sr = ADTS_SAMPLE_RATES[freqIndex];
+        if (sr) return sr;
+    }
+    return 0;
+};
+
+const probeStream = async (url) => {
+    const result = { type: null, sampleRate: 0 };
+    const controller = new AbortController();
+
+    try {
+        const response = await fetch(url, {
+            signal: controller.signal,
+            headers: STREAM_FETCH_HEADERS,
+        });
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (!response.body) throw new Error('No body');
+
+        result.type = detectStreamType(response, url);
+
+        // sampleRate ищем только для AAC
+        if (result.type === 'aac') {
+            const reader = response.body.getReader();
+            try {
+                for (let attempt = 0; attempt < 5; attempt++) {
+                    const { value, done } = await reader.read();
+                    if (done || !value) break;
+                    const sr = probeAacSampleRate(value);
+                    if (sr) { result.sampleRate = sr; break; }
+                }
+            } finally {
+                try { reader.cancel(); } catch { /* ignore */ }
+            }
+        }
+    } catch (e) {
+        console.warn('[Probe] failed:', e);
+    } finally {
+        try { controller.abort(); } catch { /* ignore */ }
+    }
+
+    return result;
+};
+
 const extractAdtsFrames = (buf) => {
     const frames = [];
     let offset = 0;
@@ -228,28 +302,13 @@ const RadioPlayer = ({ streamUrl }) => {
         try {
             const response = await fetch(currentUrl, {
                 signal: abortControllerRef.current.signal,
-                // Запрашиваем поддерживаемые форматы и метаданные
-                headers: {
-                    'Accept': 'audio/mpeg, audio/aac, audio/x-aac, audio/aacp',
-                    'Icy-MetaData': '1'
-                }
+                headers: STREAM_FETCH_HEADERS,
             });
 
             if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`);
-        
             if (!response.body) throw new Error('Empty stream body');
-            
-            // Динамическое определение типа по Content-Type заголовку сервера
-            const contentType = response.headers.get('content-type') || '';
-            if (contentType.includes('aac') || contentType.includes('audio/aacp')) {
-                decoderTypeRef.current = 'aac';
-            } else if (contentType.includes('mpeg') || contentType.includes('mp3')) {
-                decoderTypeRef.current = 'mp3';
-            } else {
-                // Резервный вариант, если сервер не прислал заголовок — смотрим по URL
-                const lowerUrl = currentUrl.toLowerCase();
-                decoderTypeRef.current = (lowerUrl.includes('aac') || lowerUrl.includes('aacp')) ? 'aac' : 'mp3';
-            }
+
+            decoderTypeRef.current = detectStreamType(response, currentUrl);
 
             let metaInterval = parseInt(response.headers.get('icy-metaint') || '', 10);
             metaInterval = isNaN(metaInterval) ? 0 : metaInterval;
@@ -481,7 +540,16 @@ const RadioPlayer = ({ streamUrl }) => {
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        const context = new AudioContextClass();
+
+        // === Двойной коннект: probe отдельным запросом ===
+        const probeResult = await probeStream(currentUrl);
+
+        // Для MP3 частоту не задаём — контекст возьмёт дефолт устройства.
+        const contextOptions = (probeResult.type === 'aac' && probeResult.sampleRate)
+            ? { sampleRate: probeResult.sampleRate }
+            : undefined;
+
+        const context = new AudioContextClass(contextOptions);
         audioContextRef.current = context;
 
         // ПАРАЛЛЕЛЬНАЯ ИНИЦИАЛИЗАЦИЯ С ОБРАБОТКОЙ ОШИБОК
@@ -531,8 +599,6 @@ const RadioPlayer = ({ streamUrl }) => {
             CENTRAL_FREQS
         );
         audioChainRef.current.masterGain.connect(context.destination);
-
-        window.__eqDebug = audioChainRef.current;
 
         isPlayingRef.current = true;
         setIsPlaying(true);

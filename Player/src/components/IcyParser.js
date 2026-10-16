@@ -110,7 +110,7 @@ export class IcyParser {
 
         const title = parseField("StreamTitle='");
         if (title) {
-            const parts = title.split('-').map(s => s.trim());
+            const parts = title.split(' - ').map(s => s.trim());
             data.artist = parts[0] || null;
             data.track = parts[1] || null;
         } else {
@@ -120,7 +120,7 @@ export class IcyParser {
         
 
         const next = parseField("NextTrack='");
-        data.next = next ? `"${next}"` : null;
+        data.next = next;
 
         const fromFlac = parseField("FromFlac='");
         data.fromFlac = fromFlac !== null ? fromFlac === '1' : undefined;
