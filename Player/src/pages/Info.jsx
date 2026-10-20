@@ -8,7 +8,7 @@ import { LossySvg, OnAirSvg, ArrowToLeftSvg, OnAirQuarterSvg, MobileCheckSvg, Lo
 import QRCodeStyling from "qr-code-styling";
 
 import { useStreams, useGetStreamStatus } from '../features/StreamsSlice';
-import { useCurrentStream } from "../features/PlayerSlice";
+import { useCurrentStream, useMetadata } from "../features/PlayerSlice";
 
 import FadeIn from '../components/FadeIn';
 import Modal from '../components/Modal';
@@ -71,11 +71,16 @@ const Info = () => {
     const currentStream = useCurrentStream();
     const streams = useStreams();
     const getStreamStatus = useGetStreamStatus();
+    const metadata = useMetadata();
 
     const navigate = useNavigate();
     const [tab, setTab] = useState('stream');
     const [streamInfo, setStreamInfo] = useState(null);
     const [flawInfoVisible, setFlawInfoVisible] = useState(false);
+    const [currentTrack, setCurrentTrack] = useState(null);
+    const [nextTrack, setNextTrack] = useState(null);
+    const [currentLossy, setCurrentLossy] = useState(false);
+    const [nextLossy, setNextLossy] = useState(false);
 
     const refStreamQr = useRef(null);
     const refAppQr = useRef(null);
@@ -160,6 +165,46 @@ const Info = () => {
         qrTg.append(refTgQr.current);
     }, [currentStream, tab]);
 
+    useEffect(() => {
+        (async () => {
+            let currentTrack = metadata && metadata.track ? metadata.track : streamInfo && streamInfo.track ? streamInfo.track : null;
+            let currentArtist = metadata && metadata.artist ? metadata.artist : streamInfo && streamInfo.artist ? streamInfo.artist : null;
+            if (currentArtist && currentTrack) {
+                setCurrentTrack(`"${currentTrack}" by ${currentArtist}`);
+            } else if (!currentArtist) {
+                setCurrentTrack(`"${currentTrack}" by <Unknown Artist>`);
+            } else if (!currentTrack) {
+                setCurrentTrack(`<Unknown Track> by ${currentArtist}`);
+            } else {
+                setCurrentTrack(null);
+            }
+
+            let nextTrack;
+            let nextArtist;
+            if (metadata && metadata.next) {
+                const parts = metadata.next.split(' - ').map(s => s.trim());
+                nextArtist = parts[0] || null;
+                nextTrack = parts[1] || null;
+            } else {
+                nextTrack = streamInfo && streamInfo.nextTrack ? streamInfo.nextTrack : null;
+                nextArtist = streamInfo && streamInfo.nextArtist ? streamInfo.nextArtist : null;
+            }
+            if (nextArtist && nextTrack) {
+                setNextTrack(`"${nextTrack}" by ${nextArtist}`);
+            } else if (!nextArtist) {
+                setNextTrack(`"${nextTrack}" by <Unknown Artist>`);
+            } else if (!nextTrack) {
+                setNextTrack(`<Unknown Track> by ${nextArtist}`);
+            } else {
+                setNextTrack(null);
+            }
+
+            setCurrentLossy(metadata && metadata.fromFlac !== undefined ? metadata.fromFlac === false : streamInfo ? streamInfo.fromFlac === false : false);
+            setNextLossy(streamInfo && streamInfo.nextFromFlac !== undefined ? streamInfo.nextFromFlac === false : false);
+
+        })();
+    }, [streamInfo, metadata]);
+
     return (<FadeIn>
         <div className='info-container'>
             <div className='page-header'>
@@ -199,13 +244,13 @@ const Info = () => {
                     </div>
                 </div>
                 <div className='extra'>
-                    {streamInfo && streamInfo.track && <div className='tile track'>
+                    {currentTrack && <div className='tile track'>
                         <span>NOW PLAYING:</span>
-                        <span>{`"${streamInfo.track}" by ${streamInfo.artist}`}{streamInfo && streamInfo.fromFlac === false && <LossySvg onClick={() => setFlawInfoVisible(true)} />}</span>
+                        <span>{currentTrack}{currentLossy && <LossySvg onClick={() => setFlawInfoVisible(true)} />}</span>
                     </div>}
-                    {streamInfo && streamInfo.nextTrack && <div className='tile track'>
+                    {nextTrack && <div className='tile track'>
                         <span>NEXT UP:</span>
-                        <span>{`"${streamInfo.nextTrack}" by ${streamInfo.nextArtist}`}{streamInfo && streamInfo.nextFromFlac === false && <LossySvg onClick={() => setFlawInfoVisible(true)} />}</span>
+                        <span>{nextTrack}{nextLossy && <LossySvg onClick={() => setFlawInfoVisible(true)} />}</span>
                     </div>}
                     {streamInfo && streamInfo.totalTracks > 0 && <div className='tile track'>
                         <span>PLAYLIST:</span>
