@@ -49,19 +49,29 @@ export class IcyParser {
                     this._appendAudio(chunk.subarray(readPos));
                     readPos = chunk.length;
                 } else {
-                    // В чанке есть аудио, а сразу за ним — метаданные
+                    // В чанке есть аудио, доходим ровно до границы метаданных
                     if (distanceToMeta > 0) {
                         this._appendAudio(chunk.subarray(readPos, readPos + distanceToMeta));
                         readPos += distanceToMeta;
                     }
                     
-                    // Читаем длину метаданных (следующий байт после аудио)
+                    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Проверяем, есть ли в текущем чанке байт длины метаданных
+                    if (readPos >= chunk.length) {
+                        // Байта длины нет в этом чанке, он придет в начале следующего чанка!
+                        // Мы уже накопили ровно metaInterval аудио-байтов, поэтому на следующем шаге
+                        // available гарантированно будет >= distanceToMeta (так как distanceToMeta станет 0)
+                        break;
+                    }
+
+                    // Читаем длину метаданных
                     this.metadataLength = chunk[readPos] * 16;
                     readPos += 1;
-                    this.bytesSinceAudio = 0; // Сбрасываем счетчик аудио
+                    
+                    // Сбрасываем счетчик аудио-байтов СРАЗУ, как только считали байт длины
+                    this.bytesSinceAudio = 0; 
 
                     if (this.metadataLength === 0) {
-                        // Пустой блок метаданных — полезно для сброса UI
+                        // Пустой блок метаданных — отправляем пустой payload
                         events.push({ type: 'metadata', payload: {} });
                     } else {
                         this.metadataLeft = this.metadataLength;
@@ -77,6 +87,68 @@ export class IcyParser {
 
         return events;
     }
+    // feed(chunk) {
+    //     const events = [];
+    //     let readPos = 0;
+
+    //     while (readPos < chunk.length) {
+    //         // Приоритет 1: Дочитываем метаданные, если процесс начат
+    //         if (this.metadataLeft > 0) {
+    //             const toCopy = Math.min(this.metadataLeft, chunk.length - readPos);
+    //             const newMetaBuffer = new Uint8Array(this.metadataBuffer.length + toCopy);
+    //             newMetaBuffer.set(this.metadataBuffer);
+    //             newMetaBuffer.set(chunk.subarray(readPos, readPos + toCopy), this.metadataBuffer.length);
+    //             this.metadataBuffer = newMetaBuffer;
+
+    //             this.metadataLeft -= toCopy;
+    //             readPos += toCopy;
+
+    //             if (this.metadataLeft === 0) {
+    //                 const strMetadata = new TextDecoder().decode(this.metadataBuffer).replace(/\0/g, '');
+    //                 this.metadataBuffer = new Uint8Array(0);
+    //                 events.push({ type: 'metadata', payload: this._parseIcyString(strMetadata) });
+    //             }
+    //             continue;
+    //         }
+
+    //         // Приоритет 2: Если включен режим ICY, ищем границу метаданных
+    //         if (this.metaInterval > 0) {
+    //             const distanceToMeta = this.metaInterval - this.bytesSinceAudio;
+    //             const available = chunk.length - readPos;
+
+    //             if (available < distanceToMeta) {
+    //                 // В чанке только аудио
+    //                 this._appendAudio(chunk.subarray(readPos));
+    //                 readPos = chunk.length;
+    //             } else {
+    //                 // В чанке есть аудио, а сразу за ним — метаданные
+    //                 if (distanceToMeta > 0) {
+    //                     this._appendAudio(chunk.subarray(readPos, readPos + distanceToMeta));
+    //                     readPos += distanceToMeta;
+    //                 }
+                    
+    //                 // Читаем длину метаданных (следующий байт после аудио)
+    //                 this.metadataLength = chunk[readPos] * 16;
+    //                 readPos += 1;
+    //                 this.bytesSinceAudio = 0; // Сбрасываем счетчик аудио
+
+    //                 if (this.metadataLength === 0) {
+    //                     // Пустой блок метаданных — полезно для сброса UI
+    //                     events.push({ type: 'metadata', payload: {} });
+    //                 } else {
+    //                     this.metadataLeft = this.metadataLength;
+    //                 }
+    //             }
+    //             continue;
+    //         }
+
+    //         // Приоритет 3: Режим без метаданных (metaInterval === 0)
+    //         this._appendAudio(chunk.subarray(readPos));
+    //         readPos = chunk.length;
+    //     }
+
+    //     return events;
+    // }
 
     /**
      * Забирает накопленный аудиобуфер. 
