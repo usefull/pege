@@ -10,9 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@audio/decode-aac": "^1.6.0",
     "@reduxjs/toolkit": "^2.12.0",
-    "mpg123-decoder": "^1.0.3",
     "qr-code-styling": "^1.9.2",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",

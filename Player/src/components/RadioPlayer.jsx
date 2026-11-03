@@ -1,8 +1,7 @@
 import { useEffect, useRef } from 'react';
-import { MPEGDecoder } from 'mpg123-decoder';
-import { decoder as createAACDecoder } from '@audio/decode-aac';
 import AudioChain from './AudioChain';
 import { IcyParser } from './IcyParser';
+import { ADTS_SAMPLE_RATES, MP3_BITRATES, MP3_SAMPLE_RATES } from '../const';
 
 import { useSetIsPlaying, useSetIsBuffering, useTogglePlayRequestId, useSetMetadata } from '../features/PlayerSlice';
 import { useEqGrains, useEqOn } from '../features/EqualizerSlice';
@@ -16,11 +15,6 @@ const INITIAL_RECONNECT_DELAY = 1000;
 const MAX_RECONNECT_DELAY = 16000;
 const FADE_DURATION = 0.4;
 const MAX_QUEUE_DURATION = 10;
-
-const ADTS_SAMPLE_RATES = [
-    96000, 88200, 64000, 48000, 44100, 32000,
-    24000, 22050, 16000, 12000, 11025, 8000, 7350
-];
 
 const STREAM_FETCH_HEADERS = {
     'Accept': 'audio/mpeg, audio/aac, audio/x-aac, audio/aacp',
@@ -91,6 +85,56 @@ const probeStream = async (url) => {
     return result;
 };
 
+const extractMp3Frames = (buf) => {
+    const frames = [];
+    let offset = 0;
+
+    while (offset + 4 <= buf.length) {
+        // Сигнал синхронизации (Syncword): первые 11 бит установлены в 1 (0xFF + три старших бита)
+        if (buf[offset] !== 0xFF || (buf[offset + 1] & 0xE0) !== 0xE0) {
+            offset++;
+            continue;
+        }
+
+        // Версия MPEG (биты 4-3 байта 1): 11 = MPEG Version 1 (самый частый для радио)
+        const version = (buf[offset + 1] >> 3) & 0x03;
+        if (version !== 3) { 
+            offset++; // Пропускаем MPEG 2/2.5 для упрощения базовой формулы
+            continue; 
+        }
+
+        // Слой звука (биты 2-1 байта 1): 01 = Layer III
+        const layer = (buf[offset + 1] >> 1) & 0x03;
+        if (layer !== 1) {
+            offset++;
+            continue;
+        }
+
+        const bitrateIdx = (buf[offset + 2] >> 4) & 0x0F;
+        const sampleRateIdx = (buf[offset + 2] >> 2) & 0x03;
+        const padding = (buf[offset + 2] >> 1) & 0x01;
+
+        if (bitrateIdx === 0 || bitrateIdx === 15 || sampleRateIdx === 3) {
+            offset++;
+            continue;
+        }
+
+        const bitrate = MP3_BITRATES[bitrateIdx] * 1000;
+        const sampleRate = MP3_SAMPLE_RATES[sampleRateIdx];
+
+        // Формула длины фрейма MPEG-1 Layer III
+        const frameLen = Math.floor((144 * bitrate) / sampleRate) + padding;
+
+        if (frameLen < 4) { offset++; continue; }
+        if (offset + frameLen > buf.length) break; // Ждем догрузки чанка
+
+        frames.push(buf.subarray(offset, offset + frameLen));
+        offset += frameLen;
+    }
+
+    return { frames, remaining: buf.subarray(offset) };
+};
+
 const extractAdtsFrames = (buf) => {
     const frames = [];
     let offset = 0;
@@ -142,6 +186,7 @@ const RadioPlayer = ({ streamUrl }) => {
 
     const audioQueueRef = useRef([]);
     const aacByteBufferRef = useRef(new Uint8Array(0));
+    const mp3ByteBufferRef = useRef(new Uint8Array(0));
     const isBufferingRef = useRef(true);
     const reconnectTimeoutRef = useRef(null);
     const reconnectDelayRef = useRef(INITIAL_RECONNECT_DELAY);
@@ -281,13 +326,11 @@ const RadioPlayer = ({ streamUrl }) => {
         }
 
         if (decoderRef.current) {
-            if (decoderRef.current.mp3 && typeof decoderRef.current.mp3.free === 'function') {
-                decoderRef.current.mp3.free();
+            if (decoderRef.current.mp3 && typeof decoderRef.current.mp3.close === 'function') {
+                try { decoderRef.current.mp3.close(); } catch {}
             }
-            if (decoderRef.current.aac && typeof decoderRef.current.aac.free === 'function') {
-                decoderRef.current.aac.free();
-            } else if (decoderRef.current.aac && typeof decoderRef.current.aac.destroy === 'function') {
-                decoderRef.current.aac.destroy();
+            if (decoderRef.current.aac && typeof decoderRef.current.aac.close === 'function') {
+                try { decoderRef.current.aac.close(); } catch {}
             }
             decoderRef.current = null;
         }
@@ -296,6 +339,7 @@ const RadioPlayer = ({ streamUrl }) => {
         nextStartTimeRef.current = 0;
         audioQueueRef.current = [];
         aacByteBufferRef.current = new Uint8Array(0);
+        mp3ByteBufferRef.current = new Uint8Array(0);
         
         setIsBuffering(false);
     };
@@ -458,15 +502,29 @@ const RadioPlayer = ({ streamUrl }) => {
 
     const decodeAndEnqueue = async (value) => {
         try {
+            // Вспомогательная функция для оборачивания Uint8Array фрейма в чанк для WebCodecs
+            const createAudioChunk = (frameBuffer) => new EncodedAudioChunk({
+                type: 'key',
+                timestamp: performance.now() * 1000, // Метка времени в микросекундах
+                data: frameBuffer
+            });
+
+            // === ОБРАБОТКА MP3 ===
             if (decoderTypeRef.current === 'mp3' && decoderRef.current?.mp3) {
-                const decoded = decoderRef.current.mp3.decode(value);
-                if (!decoded || decoded.samplesDecoded === 0 || !decoded.channelData) {
-                    return true; // повреждённый чанк MP3 — пропускаем
+                const merged = new Uint8Array(mp3ByteBufferRef.current.length + value.length);
+                merged.set(mp3ByteBufferRef.current, 0);
+                merged.set(value, mp3ByteBufferRef.current.length);
+
+                const { frames, remaining } = extractMp3Frames(merged);
+                mp3ByteBufferRef.current = remaining;
+
+                for (const frame of frames) {
+                    decoderRef.current.mp3.decode(createAudioChunk(frame));
                 }
-                enqueueDecoded(decoded);
                 return true;
             }
 
+            // === ОБРАБОТКА AAC ===
             if (decoderTypeRef.current === 'aac' && decoderRef.current?.aac) {
                 const merged = new Uint8Array(aacByteBufferRef.current.length + value.length);
                 merged.set(aacByteBufferRef.current, 0);
@@ -476,18 +534,16 @@ const RadioPlayer = ({ streamUrl }) => {
                 aacByteBufferRef.current = remaining;
 
                 for (const frame of frames) {
-                    const decodedFrame = await decoderRef.current.aac.decode(frame);
-                    const hasData = !!(decodedFrame?.channelData?.[0]?.length);
-                    if (!hasData) continue;
-                    enqueueDecoded(decodedFrame);
+                    decoderRef.current.aac.decode(createAudioChunk(frame));
                 }
                 return true;
             }
 
             return false;
         } catch (decodeError) {
-            console.warn('Ошибка в decodeAndEnqueue:', decodeError);
+            console.warn('Ошибка в decodeAndEnqueue (WebCodecs):', decodeError);
             aacByteBufferRef.current = new Uint8Array(0);
+            mp3ByteBufferRef.current = new Uint8Array(0);
             return false;
         }
     };
@@ -594,42 +650,41 @@ const RadioPlayer = ({ streamUrl }) => {
         const context = new AudioContextClass(contextOptions);
         audioContextRef.current = context;
 
-        // ПАРАЛЛЕЛЬНАЯ ИНИЦИАЛИЗАЦИЯ С ОБРАБОТКОЙ ОШИБОК
-        const mp3Decoder = new MPEGDecoder();
+        // Функция-фабрика для WebCodecs декодера
+        const createNativeDecoder = (codecName) => {
+            return new AudioDecoder({
+                output: (audioData) => {
+                    const samples = audioData.numberOfFrames;
+                    const channels = audioData.numberOfChannels;
+                    
+                    const leftData = new Float32Array(samples);
+                    const rightData = channels > 1 ? new Float32Array(samples) : leftData;
+                    
+                    audioData.copyTo(leftData, { planeIndex: 0 });
+                    if (channels > 1) audioData.copyTo(rightData, { planeIndex: 1 });
 
-        const mp3Ready = mp3Decoder.ready
-            .then(() => mp3Decoder)
-            .catch((err) => {
-                console.warn('MP3 decoder init failed:', err);
-                return null;
+                    enqueueDecoded({
+                        channelData: [leftData, rightData],
+                        sampleRate: audioData.sampleRate
+                    });
+                    
+                    audioData.close(); // КРИТИЧЕСКИ ВАЖНО для предотвращения утечек памяти!
+                },
+                error: (err) => console.error(`[AudioDecoder ${codecName}] Error:`, err)
             });
+        };
 
-        const aacReady = createAACDecoder().catch((err) => {
-            console.warn('AAC decoder init failed:', err);
-            return null;
-        });
+        // Создаем нативные инстансы
+        const aacDecoder = createNativeDecoder('AAC');
+        const mp3Decoder = createNativeDecoder('MP3');
 
-        const [mp3Instance, aacInstance] = await Promise.all([mp3Ready, aacReady]);
-
-        // Если ни один декодер не поднялся — дальше идти некуда
-        if (!mp3Instance && !aacInstance) {
-            console.error('Оба декодера не инициализировались — воспроизведение невозможно');
-
-            isPlayingRef.current = false;
-            setIsPlaying(false);
-            setIsBuffering(false);
-            isBufferingRef.current = false;
-
-            if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-                audioContextRef.current.close().catch(() => {});
-                audioContextRef.current = null;
-            }
-            return;
-        }
+        // Конфигурируем их. Для стримов часто берется AAC-LC ('mp4a.40.2') или MP3 ('mp3')
+        aacDecoder.configure({ codec: 'mp4a.40.2', sampleRate: probeResult.sampleRate || 44100, numberOfChannels: 2 });
+        mp3Decoder.configure({ codec: 'mp3', sampleRate: 44100, numberOfChannels: 2 });
 
         decoderRef.current = {
-            mp3: mp3Instance || null,
-            aac: aacInstance || null
+            mp3: mp3Decoder,
+            aac: aacDecoder
         };
 
         decoderTypeRef.current = null;
