@@ -1,3 +1,5 @@
+import { cleanString } from "../utils";
+
 export class IcyParser {
     /**
      * @param {number} metaInterval Количество байтов аудиоданных между блоками метаданных (из заголовка icy-metaint)
@@ -105,19 +107,18 @@ export class IcyParser {
             if (!field) return null;
             const start = field.indexOf("'") + 1;
             const end = field.lastIndexOf("'");
-            return (start > 0 && end > start) ? field.substring(start, end).trim() : null;
+            return (start > 0 && end > start) ? field.substring(start, end) : null;
         };
 
         const title = parseField("StreamTitle='");
         if (title) {
             const parts = title.split(' - ').map(s => s.trim());
-            data.artist = parts[0] || null;
-            data.track = parts[1] || null;
+            data.artist = cleanString(parts[0]);
+            data.track = cleanString(parts[1]);
         } else {
             data.artist = null;
             data.track = null;
-        }
-        
+        }        
 
         const next = parseField("NextTrack='");
         data.next = next;

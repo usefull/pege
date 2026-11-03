@@ -13,6 +13,8 @@ import { useCurrentStream, useMetadata } from "../features/PlayerSlice";
 import FadeIn from '../components/FadeIn';
 import Modal from '../components/Modal';
 
+import { cleanString } from '../utils';
+
 import '../styles/info.scss';
 import styles from '../styles/theme.module.scss';
 
@@ -169,11 +171,15 @@ const Info = () => {
         (async () => {
             let currentTrack = metadata && metadata.track ? metadata.track : streamInfo && streamInfo.track ? streamInfo.track : null;
             let currentArtist = metadata && metadata.artist ? metadata.artist : streamInfo && streamInfo.artist ? streamInfo.artist : null;
+            
+            currentTrack = cleanString(currentTrack);
+            currentArtist = cleanString(currentArtist);
+
             if (currentArtist && currentTrack) {
                 setCurrentTrack(`"${currentTrack}" by ${currentArtist}`);
-            } else if (!currentArtist) {
+            } else if (!currentArtist && currentTrack) {
                 setCurrentTrack(`"${currentTrack}" by <Unknown Artist>`);
-            } else if (!currentTrack) {
+            } else if (!currentTrack && currentArtist) {
                 setCurrentTrack(`<Unknown Track> by ${currentArtist}`);
             } else {
                 setCurrentTrack(null);
@@ -189,11 +195,12 @@ const Info = () => {
                 nextTrack = streamInfo && streamInfo.nextTrack ? streamInfo.nextTrack : null;
                 nextArtist = streamInfo && streamInfo.nextArtist ? streamInfo.nextArtist : null;
             }
+            
             if (nextArtist && nextTrack) {
                 setNextTrack(`"${nextTrack}" by ${nextArtist}`);
-            } else if (!nextArtist) {
+            } else if (!nextArtist && nextTrack) {
                 setNextTrack(`"${nextTrack}" by <Unknown Artist>`);
-            } else if (!nextTrack) {
+            } else if (!nextTrack && nextArtist) {
                 setNextTrack(`<Unknown Track> by ${nextArtist}`);
             } else {
                 setNextTrack(null);

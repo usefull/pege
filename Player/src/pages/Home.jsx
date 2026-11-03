@@ -14,6 +14,34 @@ import Modal from '../components/Modal';
 import '../styles/home.scss'
 import NoWrap from '../components/NoWrap';
 
+const NextUp = ({metadata}) => {
+
+    const [artist, setArtist] = useState(null);
+    const [track, setTrack] = useState(null);
+
+    useEffect(() => {
+        (async () => {
+            let artist = null;
+            let track = null;
+            if (metadata && metadata.next) {
+                const parts = metadata.next.split(' - ').map(s => s.trim());
+                artist = parts[0] || null;
+                track = parts[1] || null;
+            }
+            setTrack(track);
+            setArtist(artist);
+        })();
+    }, [metadata]);
+
+    return (<>
+        {(track || artist) && <>
+            <u>Next up</u>:&nbsp;
+            {track ? <>"{track}"</> : <i>&lt;Unknown Track&gt;</i>}&nbsp;by&nbsp;
+            {artist ? <>{artist}</> : <i>&lt;Unknown Artist&gt;</i>}
+        </>}
+    </>);
+};
+
 const Home = () => {
 
     const navigate = useNavigate();
@@ -46,19 +74,19 @@ const Home = () => {
         setCurrentStream(streams.items[index].id);
     }
 
-    const formatNextTrackMetadata = (next) => {
-        let artist = null;
-        let track = null;
-        if (next) {
-            const parts = next.split(' - ').map(s => s.trim());
-            artist = parts[0] || null;
-            track = parts[1] || null;
-        }
+    // const formatNextTrackMetadata = (next) => {
+    //     let artist = null;
+    //     let track = null;
+    //     if (next) {
+    //         const parts = next.split(' - ').map(s => s.trim());
+    //         artist = parts[0] || null;
+    //         track = parts[1] || null;
+    //     }
 
-        track = track ? `"${track}"` : '<Unknown Track>';
+    //     track = track ? `"${track}"` : '<Unknown Track>';
 
-        return `${track}${artist ? ` by ${artist}` : ''}`;
-    }
+    //     return `${track}${artist ? ` by ${artist}` : ''}`;
+    // }
     
     return (<FadeIn>
         <div className="home-container">
@@ -77,7 +105,8 @@ const Home = () => {
             <div className="footer-panel">
                 <MarqueeText>{isBuffering ? '' : <>{metadata ? metadata.track : ''}{metadata && metadata.fromFlac === false && <LossySvg onClick={() => setFlawInfoVisible(true)} />}</>}</MarqueeText>
                 <MarqueeText>{isBuffering ? <span className='buffering'></span> : <>{metadata ? metadata.artist : ''}</>}</MarqueeText>
-                <MarqueeText>{isBuffering ? '' : <>{metadata && metadata.next && <><u>Next up</u>:&nbsp;{formatNextTrackMetadata(metadata.next)}</>}</>}</MarqueeText>
+                {/* <MarqueeText>{isBuffering ? '' : <>{metadata && metadata.next && <><u>Next up</u>:&nbsp;{formatNextTrackMetadata(metadata.next)}</>}</>}</MarqueeText> */}
+                <MarqueeText>{isBuffering ? '' : <NextUp metadata={metadata} />}</MarqueeText>
             </div>
         </div>
         <div className='svg-button list-button' title="Stream list" onClick={() => navigate(`/streams`)}>
