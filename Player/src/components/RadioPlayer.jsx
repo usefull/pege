@@ -611,6 +611,27 @@ const RadioPlayer = ({ streamUrl }) => {
         consumerTimerRef.current = setTimeout(runConsumer, CONSUMER_TICK_MS);
     };
 
+    const createAACDescription = (sampleRate, channels) => {
+        const sampleRates = [
+            96000, 88200, 64000, 48000, 44100, 32000,
+            24000, 22050, 16000, 12000, 11025, 8000, 7350
+        ];
+        
+        const rateIndex = sampleRates.indexOf(sampleRate);
+        // Если частота нестандартная, Chromium все равно может упасть, 
+        // но для 44100 индекс будет 4, для 48000 — 3.
+        const finalRateIndex = rateIndex !== -1 ? rateIndex : 4; 
+
+        const config = new Uint8Array(2);
+        // 5 бит: Audio Object Type (2 = AAC-LC)
+        // 4 бита: Sample Rate Index (сдвигаем, так как индекс занимает часть первого и второго байта)
+        config[0] = (2 << 3) | (finalRateIndex >> 1);
+        // 4 бита: Channel Configuration
+        config[1] = ((finalRateIndex & 1) << 7) | (channels << 3);
+        
+        return config;
+    }
+
     const startPlayback = async () => {
         const currentUrl = streamUrlRef.current;
         if (!currentUrl) return;
@@ -680,9 +701,18 @@ const RadioPlayer = ({ streamUrl }) => {
         const aacDecoder = createNativeDecoder('AAC');
         const mp3Decoder = createNativeDecoder('MP3');
 
-        // Конфигурируем их. Для стримов часто берется AAC-LC ('mp4a.40.2') или MP3 ('mp3')
-        aacDecoder.configure({ codec: 'mp4a.40.2', sampleRate: probeResult.sampleRate || 44100, numberOfChannels: 2 });
-        mp3Decoder.configure({ codec: 'mp3', sampleRate: 44100, numberOfChannels: 2 });
+        // Конфигурируем их.
+        aacDecoder.configure({
+            codec: 'mp4a.40.02',
+            sampleRate: probeResult.sampleRate || 44100,
+            numberOfChannels: 2,
+            description: createAACDescription(probeResult.sampleRate || 44100, 2) // обязательно для мобильных Opera, Firefox и Edge
+        });
+        mp3Decoder.configure({
+            codec: 'mp3',
+            sampleRate: 44100,
+            numberOfChannels: 2
+        });
 
         decoderRef.current = {
             mp3: mp3Decoder,
