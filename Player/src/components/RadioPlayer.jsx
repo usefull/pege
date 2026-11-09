@@ -660,8 +660,10 @@ const RadioPlayer = ({ streamUrl }) => {
                     const leftData = new Float32Array(samples);
                     const rightData = channels > 1 ? new Float32Array(samples) : leftData;
                     
-                    audioData.copyTo(leftData, { planeIndex: 0 });
-                    if (channels > 1) audioData.copyTo(rightData, { planeIndex: 1 });
+                    audioData.copyTo(leftData, { planeIndex: 0, format: 'f32-planar' });
+                    if (channels > 1) {
+                        audioData.copyTo(rightData, { planeIndex: 1, format: 'f32-planar' });
+                    }
 
                     enqueueDecoded({
                         channelData: [leftData, rightData],
