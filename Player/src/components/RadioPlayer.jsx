@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
 import AudioChain from './AudioChain';
 import { IcyParser } from './IcyParser';
-import { ADTS_SAMPLE_RATES, MP3_BITRATES, MP3_SAMPLE_RATES } from '../const';
+import { ADTS_SAMPLE_RATES } from '../const';
+import { MPEGDecoder } from 'mpg123-decoder';
 
 import { useSetIsPlaying, useSetIsBuffering, useTogglePlayRequestId, useSetMetadata } from '../features/PlayerSlice';
 import { useEqGrains, useEqOn } from '../features/EqualizerSlice';
@@ -83,56 +84,6 @@ const probeStream = async (url) => {
     }
 
     return result;
-};
-
-const extractMp3Frames = (buf) => {
-    const frames = [];
-    let offset = 0;
-
-    while (offset + 4 <= buf.length) {
-        // Сигнал синхронизации (Syncword): первые 11 бит установлены в 1 (0xFF + три старших бита)
-        if (buf[offset] !== 0xFF || (buf[offset + 1] & 0xE0) !== 0xE0) {
-            offset++;
-            continue;
-        }
-
-        // Версия MPEG (биты 4-3 байта 1): 11 = MPEG Version 1 (самый частый для радио)
-        const version = (buf[offset + 1] >> 3) & 0x03;
-        if (version !== 3) { 
-            offset++; // Пропускаем MPEG 2/2.5 для упрощения базовой формулы
-            continue; 
-        }
-
-        // Слой звука (биты 2-1 байта 1): 01 = Layer III
-        const layer = (buf[offset + 1] >> 1) & 0x03;
-        if (layer !== 1) {
-            offset++;
-            continue;
-        }
-
-        const bitrateIdx = (buf[offset + 2] >> 4) & 0x0F;
-        const sampleRateIdx = (buf[offset + 2] >> 2) & 0x03;
-        const padding = (buf[offset + 2] >> 1) & 0x01;
-
-        if (bitrateIdx === 0 || bitrateIdx === 15 || sampleRateIdx === 3) {
-            offset++;
-            continue;
-        }
-
-        const bitrate = MP3_BITRATES[bitrateIdx] * 1000;
-        const sampleRate = MP3_SAMPLE_RATES[sampleRateIdx];
-
-        // Формула длины фрейма MPEG-1 Layer III
-        const frameLen = Math.floor((144 * bitrate) / sampleRate) + padding;
-
-        if (frameLen < 4) { offset++; continue; }
-        if (offset + frameLen > buf.length) break; // Ждем догрузки чанка
-
-        frames.push(buf.subarray(offset, offset + frameLen));
-        offset += frameLen;
-    }
-
-    return { frames, remaining: buf.subarray(offset) };
 };
 
 const extractAdtsFrames = (buf) => {
@@ -326,8 +277,8 @@ const RadioPlayer = ({ streamUrl }) => {
         }
 
         if (decoderRef.current) {
-            if (decoderRef.current.mp3 && typeof decoderRef.current.mp3.close === 'function') {
-                try { decoderRef.current.mp3.close(); } catch {}
+            if (decoderRef.current.mp3 && typeof decoderRef.current.mp3.free === 'function') {
+                try { decoderRef.current.mp3.free(); } catch {}
             }
             if (decoderRef.current.aac && typeof decoderRef.current.aac.close === 'function') {
                 try { decoderRef.current.aac.close(); } catch {}
@@ -511,15 +462,17 @@ const RadioPlayer = ({ streamUrl }) => {
 
             // === ОБРАБОТКА MP3 ===
             if (decoderTypeRef.current === 'mp3' && decoderRef.current?.mp3) {
-                const merged = new Uint8Array(mp3ByteBufferRef.current.length + value.length);
-                merged.set(mp3ByteBufferRef.current, 0);
-                merged.set(value, mp3ByteBufferRef.current.length);
+                // WASM-декодер принимает сырой поток и сам обрабатывает ошибки
+                const decoded = decoderRef.current.mp3.decode(value);
 
-                const { frames, remaining } = extractMp3Frames(merged);
-                mp3ByteBufferRef.current = remaining;
+                // Проверяем, есть ли декодированные данные (samplesDecoded > 0)
+                if (decoded && decoded.samplesDecoded > 0 && decoded.channelData) {
+                    enqueueDecoded(decoded); // enqueueDecoded уже умеет работать с {channelData, sampleRate}
+                }
 
-                for (const frame of frames) {
-                    decoderRef.current.mp3.decode(createAudioChunk(frame));
+                // Если были ошибки, можно залогировать их для отладки
+                if (decoded.errors && decoded.errors.length > 0) {
+                    console.warn('[MP3 WASM] Decode errors:', decoded.errors);
                 }
                 return true;
             }
@@ -697,25 +650,21 @@ const RadioPlayer = ({ streamUrl }) => {
             });
         };
 
-        // Создаем нативные инстансы
+        // Создаем нативные инстансы для AAC (WebCodecs)
         const aacDecoder = createNativeDecoder('AAC');
-        const mp3Decoder = createNativeDecoder('MP3');
-
-        // Конфигурируем их.
         aacDecoder.configure({
             codec: 'mp4a.40.02',
             sampleRate: probeResult.sampleRate || 44100,
             numberOfChannels: 2,
             description: createAACDescription(probeResult.sampleRate || 44100, 2) // обязательно для мобильных Opera, Firefox и Edge
-        });
-        mp3Decoder.configure({
-            codec: 'mp3',
-            sampleRate: 44100,
-            numberOfChannels: 2
-        });
+        }); // конфиг AAC без изменений
+
+        // Создаем WASM-декодер для MP3
+        const mp3Decoder = new MPEGDecoder();
+        await mp3Decoder.ready; // Ждем компиляции WASM
 
         decoderRef.current = {
-            mp3: mp3Decoder,
+            mp3: mp3Decoder, // Теперь это MPEGDecoder, а не AudioDecoder
             aac: aacDecoder
         };
 
